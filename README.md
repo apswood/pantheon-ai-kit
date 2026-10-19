@@ -307,8 +307,8 @@ Status: OK — The kit is clean, fully de-identified, and structurally valid.
 ### Step 4: Open Workspace in Google Antigravity
 Open the workspace directory in Google Antigravity. Antigravity automatically traverses the filesystem from CWD up to the workspace root and discovers:
 - The living session state ledger: `GEMINI.md`
-- The 4 specialist advisory agents in `.agents/agents/`
-- The 5 governance skills in `.agents/skills/`
+- The 5 specialist advisory agents in `.agents/agents/`
+- The 6 governance skills in `.agents/skills/`
 - The workspace governance rule in `.agents/rules/sage-governance-prompt.md`
 
 ### Step 5: Invoke Multi-Agent Collaboration
@@ -327,9 +327,38 @@ Interact directly with the multi-agent advisory team using natural language prom
 # 4. Strategic Kaizen Challenge
 "Ask SPARK to challenge our daily 315-minute time worked target and suggest modern alternatives."
 
-# 5. Direct Governance Skill Execution
+# 5. Infrastructure Configuration Assessment
+"Ask AEGIS to audit this firewall/router configuration against NIST 800-41 and UKFS-01..06."
+
+# 6. Direct Governance Skill Execution
 "/ticket-backlog-governance"
 "/productivity-workload-governance"
+"/infrastructure-best-practice-analyser"
+```
+
+### Step 6: Workspace Decommissioning & Surgical Uninstallation
+If you provisioned starter kit files into an existing project workspace and later need to decommission or revert them, both Python and PowerShell provide non-destructive, surgical uninstallation:
+
+```powershell
+# Python Uninstallation:
+# 1. Preview deletion plan without removing any files (Dry Run)
+python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" --dry-run
+
+# 2. Execute uninstallation (removes canonical files & empty kit folders; preserves .env and user files)
+python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" -y
+
+# 3. Complete purge including .env, .custom_blocklist.json, and .venv
+python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" --purge-secrets --purge-venv -y
+
+# PowerShell Uninstallation:
+# 1. Preview deletion plan with -WhatIf or -DryRun
+pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Workspaces\ServiceDeliveryOps" -WhatIf
+
+# 2. Execute surgical uninstallation
+pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Workspaces\ServiceDeliveryOps" -Force
+
+# 3. Complete purge including secrets and virtual environment
+pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Workspaces\ServiceDeliveryOps" -PurgeSecrets -PurgeVenv -Force
 ```
 
 ---
@@ -422,6 +451,19 @@ To get the highest code quality and lowest token consumption from Antigravity ag
 3. **Protect the Information Hierarchy & Context Load (`writing-for-agents`)**: Keep `GEMINI.md` strictly `< 24,000 bytes` as a high-signal index; push deep rubrics and `Test Library 1.1.0` tables behind sharp `"Use when..."` context pointers inside `.agents/skills/*/SKILL.md`.
 4. **Isolate Noisy Exploration & Reviews in Subagents (`code-review` & `invoke_subagent`)**: Spawn `@atlas_architecture` (Standards/Fowler Smells vs. Spec Fidelity) and `@sentinel_security` (`<REDACTED>` scrubbing & least privilege) in parallel subagents so raw file reads never bloat your main chat.
 5. **Default to Building the Check Over Writing the Rule (`retro` & `diagnosing-bugs`)**: Verify changes with `< 2s` deterministic CLI loops (`python validate_kit.py`, `python Tests/run_fixtures.py`, `ruff check .`) rather than asking the LLM to re-read files across multiple turns.
+
+### 6.6 Workspace Lifecycle Symmetry & Surgical Decommissioning
+Provisioning files into shared enterprise repositories requires equal rigor when decommissioning or rolling back changes:
+1. **Three-Tier State Decomposition**:
+   - **Tier 1 (Canonical Kit Files)**: Agents (`.agents/agents/*`), skills (`.agents/skills/*`), rules, and scripts (`setup.py`, `validate_kit.py`, etc.). Always safely removed during uninstallation.
+   - **Tier 2 (Generated Caches & Output)**: `ANTIGRAVITY_DOCS.html`, `.venv/`, `__pycache__/`. Removed when requested (`--purge-venv` / `-PurgeVenv`).
+   - **Tier 3 (User Secrets & Keyword Blocklists)**: `.env` (contains live enterprise tokens) and `.custom_blocklist.json`. **Preserved by default** to prevent accidental credential loss; deleted only when explicit flags (`--purge-secrets` / `-PurgeSecrets`) are supplied.
+2. **Suicide Deletion Hazard & Source Repo Protection**:
+   - Running `python setup.py --uninstall` or `pwsh validate_and_install.ps1 -Uninstall` directly inside the kit source clone will abort immediately (`Exit Code 1`) with an error message to prevent accidental repository self-destruction. Uninstallation requires either an external `--target-dir` / `-TargetWorkspaceDir` or an explicit `--force` override.
+3. **Surgical Deletion vs. Recursive Purge**:
+   - Uninstallation removes only the 24 canonical kit files and generated artifacts. It prunes parent directories (`.agents/agents/`, `.agents/skills/`, `.agents/`) **only if they become completely empty**, preserving any custom agents, tools, or configurations created by your engineers.
+4. **Deterministic Dry-Run Verification**:
+   - Both `python setup.py --uninstall --dry-run` and `pwsh validate_and_install.ps1 -Uninstall -WhatIf` output a detailed preview of all candidate files and directories without altering disk state.
 
 ---
 

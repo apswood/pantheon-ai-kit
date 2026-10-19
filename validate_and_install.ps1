@@ -12,11 +12,19 @@
 .PARAMETER ValidateOnly
     Runs the 4-stage validation checks and exits without copying or prompting.
 .PARAMETER TargetWorkspaceDir
-    Target directory path where the starter kit will be downloaded/installed. Alias: TargetWorkspace.
+    Target directory path where the starter kit will be downloaded/installed/uninstalled. Alias: TargetWorkspace.
 .PARAMETER Install
     Explicit flag indicating installation mode into TargetWorkspaceDir.
+.PARAMETER Uninstall
+    Safely uninstalls PANTHEON AI Setup Kit files from the target workspace.
+.PARAMETER PurgeSecrets
+    Deletes .env and .custom_blocklist.json during uninstallation (default: preserved).
+.PARAMETER PurgeVenv
+    Deletes .venv virtual environment directory during uninstallation.
+.PARAMETER DryRun
+    Simulates uninstallation without deleting any files (supports -WhatIf natively).
 .PARAMETER Force
-    Overwrites destination files during installation without confirmation.
+    Overwrites destination files during installation, or confirms uninstallation without prompt. Aliases: y, Yes.
 .PARAMETER ConfigureCustomScanner
     Launches the interactive builder to add custom organization keywords/patterns to .custom_blocklist.json ($EncodedRules).
 .PARAMETER SkipCustomScanner
@@ -33,8 +41,12 @@
     pwsh -NoProfile -File validate_and_install.ps1 -ConfigureCustomScanner
 .EXAMPLE
     pwsh -NoProfile -File validate_and_install.ps1 -TargetWorkspaceDir "C:\Projects\MySupportProject"
+.EXAMPLE
+    pwsh -NoProfile -File validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Projects\MySupportProject" -WhatIf
+.EXAMPLE
+    pwsh -NoProfile -File validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Projects\MySupportProject" -Force
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [switch]$ValidateOnly,
 
@@ -43,11 +55,20 @@ param(
 
     [switch]$Install,
 
+    [switch]$Uninstall,
+
+    [switch]$PurgeSecrets,
+
+    [switch]$PurgeVenv,
+
+    [Alias('y', 'Yes')]
     [switch]$Force,
 
     [switch]$ConfigureCustomScanner,
 
     [switch]$SkipCustomScanner,
+
+    [switch]$DryRun,
 
     [string]$RepoZipUrl = "https://github.com/apswood/pantheon-ai-kit/archive/refs/heads/main.zip",
 
@@ -280,6 +301,188 @@ function Invoke-CustomScannerSetup ([string]$WorkspaceDir) {
     } else {
         Write-Host "  [SKIP] No custom keywords added." -ForegroundColor Gray
     }
+}
+
+function Invoke-KitUninstallation {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TargetDir,
+        [switch]$IncludeSecrets,
+        [switch]$IncludeVenv,
+        [switch]$ForceConfirmation,
+        [switch]$IsDryRun
+    )
+
+    $targetPath = [System.IO.Path]::GetFullPath($TargetDir)
+
+    # Safety Check: Source repository self-destruction protection
+    $isSourceRepo = (Test-Path -LiteralPath (Join-Path $targetPath ".git")) -and (Test-Path -LiteralPath (Join-Path $targetPath "setup.py"))
+    if ($isSourceRepo -and -not $ForceConfirmation) {
+        Write-Host "`n[ERROR] Target directory appears to be the PANTHEON source repository clone." -ForegroundColor Red
+        Write-Host "        To prevent accidental source deletion, pass -TargetWorkspaceDir <path> of an external workspace" -ForegroundColor Red
+        Write-Host "        or supply -Force if you specifically intend to strip kit files from this workspace.`n" -ForegroundColor Red
+        if (-not $IsIex) { exit 1 } else { return }
+    }
+
+    $filesToRemove = [System.Collections.Generic.List[string]]::new()
+    foreach ($rel in $RequiredFiles) {
+        $candidate = Join-Path $targetPath ($rel -replace '/', [System.IO.Path]::DirectorySeparatorChar)
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            if (-not $filesToRemove.Contains($candidate)) {
+                $filesToRemove.Add($candidate)
+            }
+        }
+    }
+
+    $docsHtml = Join-Path $targetPath "ANTIGRAVITY_DOCS.html"
+    if ((Test-Path -LiteralPath $docsHtml -PathType Leaf) -and (-not $filesToRemove.Contains($docsHtml))) {
+        $filesToRemove.Add($docsHtml)
+    }
+
+    if ($IncludeSecrets) {
+        $envFile = Join-Path $targetPath ".env"
+        $blocklist = Join-Path $targetPath $CustomBlocklistFileName
+        if ((Test-Path -LiteralPath $envFile -PathType Leaf) -and (-not $filesToRemove.Contains($envFile))) {
+            $filesToRemove.Add($envFile)
+        }
+        if ((Test-Path -LiteralPath $blocklist -PathType Leaf) -and (-not $filesToRemove.Contains($blocklist))) {
+            $filesToRemove.Add($blocklist)
+        }
+    }
+
+    $isDry = $IsDryRun -or ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('WhatIf')) -or $WhatIfPreference
+
+    Write-Host "`n======================================================================" -ForegroundColor Cyan
+    Write-Host "  PANTHEON AI SETUP KIT - UNINSTALLATION & CLEANUP$(if ($isDry) { ' (DRY RUN)' } else { '' })" -ForegroundColor Cyan
+    Write-Host "======================================================================" -ForegroundColor Cyan
+    Write-Host "  Target Workspace : $targetPath" -ForegroundColor Gray
+    Write-Host "  Files Identified : $($filesToRemove.Count)" -ForegroundColor Gray
+    Write-Host "  Purge Secrets    : $(if ($IncludeSecrets) { 'YES (.env & custom blocklist will be deleted)' } else { 'NO (kept intact)' })" -ForegroundColor Gray
+    Write-Host "  Purge .venv      : $(if ($IncludeVenv) { 'YES' } else { 'NO' })" -ForegroundColor Gray
+    Write-Host "======================================================================" -ForegroundColor Cyan
+
+    # Directories to prune (deepest first)
+    $dirsToPrune = @(
+        ".agents/agents/aegis_best_practice",
+        ".agents/agents/atlas_architecture",
+        ".agents/agents/sage_governance",
+        ".agents/agents/sentinel_security",
+        ".agents/agents/spark_disruptor",
+        ".agents/skills/infrastructure-best-practice-analyser",
+        ".agents/skills/ticket-backlog-governance",
+        ".agents/skills/productivity-workload-governance",
+        ".agents/skills/quality-audit-governance",
+        ".agents/skills/teams-standup-digest-notifier",
+        ".agents/skills/support-team-governance-analytics-coaching",
+        ".agents/rules",
+        ".agents/agents",
+        ".agents/skills",
+        ".agents",
+        "Governance_Framework"
+    )
+
+    $hasDirs = $false
+    foreach ($relDir in $dirsToPrune) {
+        $dirPath = Join-Path $targetPath ($relDir -replace '/', [System.IO.Path]::DirectorySeparatorChar)
+        if (Test-Path -LiteralPath $dirPath -PathType Container) {
+            $hasDirs = $true
+            break
+        }
+    }
+
+    if ($filesToRemove.Count -eq 0 -and -not $hasDirs) {
+        Write-Host "No PANTHEON AI Setup Kit files found in target workspace." -ForegroundColor Yellow
+        if (-not $IsIex) { exit 0 } else { return }
+    }
+
+    foreach ($file in $filesToRemove) {
+        $relFile = if ($file.StartsWith($targetPath)) { $file.Substring($targetPath.Length).TrimStart('\', '/') } else { $file }
+        Write-Host "  [-] $relFile" -ForegroundColor DarkGray
+    }
+
+    if ($isDry) {
+        Write-Host "`n[DRY RUN] No files were removed." -ForegroundColor Yellow
+        if (-not $IsIex) { exit 0 } else { return }
+    }
+
+    if (-not $ForceConfirmation -and [Environment]::UserInteractive) {
+        $confirm = Read-Host "`nAre you sure you want to delete these kit components? [y/N]"
+        if ([string]::IsNullOrWhiteSpace($confirm) -or ($confirm.Trim() -notmatch '^(y|yes)$')) {
+            Write-Host "[ABORTED] Uninstallation cancelled by user." -ForegroundColor Yellow
+            if (-not $IsIex) { exit 0 } else { return }
+        }
+    }
+
+    $deletedCount = 0
+    $scriptSelfPath = $PSCommandPath
+    $selfFile = $null
+
+    foreach ($file in $filesToRemove) {
+        if (-not [string]::IsNullOrEmpty($scriptSelfPath) -and ([System.IO.Path]::GetFullPath($file) -eq [System.IO.Path]::GetFullPath($scriptSelfPath))) {
+            $selfFile = $file
+            continue
+        }
+        if ($PSCmdlet.ShouldProcess($file, "Delete kit file")) {
+            try {
+                Remove-Item -LiteralPath $file -Force -ErrorAction Stop
+                $deletedCount++
+            } catch {
+                Write-Host "  [WARN] Failed to delete $file : $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+        }
+    }
+
+    if ($IncludeVenv) {
+        $venvPath = Join-Path $targetPath ".venv"
+        if (Test-Path -LiteralPath $venvPath -PathType Container) {
+            if ($PSCmdlet.ShouldProcess($venvPath, "Remove virtual environment")) {
+                try {
+                    Remove-Item -LiteralPath $venvPath -Recurse -Force -ErrorAction Stop
+                    Write-Host "  [REMOVED DIR] .venv" -ForegroundColor DarkGray
+                } catch {
+                    Write-Host "  [WARN] Failed to remove .venv : $($_.Exception.Message)" -ForegroundColor Yellow
+                }
+            }
+        }
+    }
+
+    # Prune empty directories bottom-up
+    foreach ($relDir in $dirsToPrune) {
+        $dirPath = Join-Path $targetPath ($relDir -replace '/', [System.IO.Path]::DirectorySeparatorChar)
+        if (Test-Path -LiteralPath $dirPath -PathType Container) {
+            $remaining = @(Get-ChildItem -LiteralPath $dirPath -Force -ErrorAction SilentlyContinue)
+            if ($remaining.Count -eq 0) {
+                if ($PSCmdlet.ShouldProcess($dirPath, "Remove empty directory")) {
+                    try {
+                        Remove-Item -LiteralPath $dirPath -Force -ErrorAction Stop
+                        Write-Host "  [REMOVED EMPTY DIR] $relDir" -ForegroundColor DarkGray
+                    } catch { }
+                }
+            }
+        }
+    }
+
+    if ($null -ne $selfFile) {
+        if ($PSCmdlet.ShouldProcess($selfFile, "Delete kit file")) {
+            try {
+                Remove-Item -LiteralPath $selfFile -Force -ErrorAction Stop
+                $deletedCount++
+            } catch {
+                Write-Host "  [NOTE] Script file $selfFile could not be deleted while executing (delete manually if desired)." -ForegroundColor Gray
+            }
+        }
+    }
+
+    Write-Host "`n[OK] Successfully uninstalled $deletedCount kit file(s)." -ForegroundColor Green
+    if (-not $IsIex) { exit 0 } else { return }
+}
+
+# Check if uninstallation was requested
+if ($Uninstall) {
+    $targetUninstallDir = if ($TargetWorkspaceDir) { $TargetWorkspaceDir } else { if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path } }
+    Invoke-KitUninstallation -TargetDir $targetUninstallDir -IncludeSecrets:$PurgeSecrets -IncludeVenv:$PurgeVenv -ForceConfirmation:$Force -IsDryRun:$DryRun
+    if (-not $IsIex) { exit 0 } else { return }
 }
 
 # Resolve Kit Root Directory (or bootstrap from GitHub if not cloned locally)

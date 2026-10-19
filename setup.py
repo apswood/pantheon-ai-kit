@@ -72,32 +72,37 @@ CUSTOM_BLOCKLIST_FILENAME = ".custom_blocklist.json"
 REPO_ZIP_URL = "https://github.com/apswood/pantheon-ai-kit/archive/refs/heads/main.zip"
 REPO_RAW_BASE_URL = "https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main"
 
-REQUIRED_KIT_FILES: List[str] = [
-    "README.md",
-    "ANTIGRAVITY_SETUP_GUIDE.md",
-    "ANTIGRAVITY_DOCS.html",
-    "GEMINI.md",
-    ".env.template",
-    ".gitignore",
-    "setup.py",
-    "build_docs.py",
-    "validate_kit.py",
-    "validate_and_install.ps1",
-    ".agents/agents/aegis_best_practice/agent.md",
-    ".agents/agents/atlas_architecture/agent.md",
-    ".agents/agents/sage_governance/agent.md",
-    ".agents/agents/sentinel_security/agent.md",
-    ".agents/agents/spark_disruptor/agent.md",
-    ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
-    ".agents/skills/productivity-workload-governance/SKILL.md",
-    ".agents/skills/quality-audit-governance/SKILL.md",
-    ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
-    ".agents/skills/teams-standup-digest-notifier/SKILL.md",
-    ".agents/skills/ticket-backlog-governance/SKILL.md",
-    "Governance_Framework/AEGIS_Agent_System_Prompt.md",
-    "Governance_Framework/SAGE_Agent_System_Prompt.md",
-    ".agents/rules/sage-governance-prompt.md",
-]
+try:
+    from validate_kit import EXPECTED_FILES as _CANONICAL_FILES  # type: ignore[import-not-found]
+
+    REQUIRED_KIT_FILES: List[str] = list(_CANONICAL_FILES)
+except Exception:
+    REQUIRED_KIT_FILES = [
+        "README.md",
+        "ANTIGRAVITY_SETUP_GUIDE.md",
+        "ANTIGRAVITY_DOCS.html",
+        "GEMINI.md",
+        ".env.template",
+        ".gitignore",
+        "setup.py",
+        "build_docs.py",
+        "validate_kit.py",
+        "validate_and_install.ps1",
+        ".agents/agents/aegis_best_practice/agent.md",
+        ".agents/agents/atlas_architecture/agent.md",
+        ".agents/agents/sage_governance/agent.md",
+        ".agents/agents/sentinel_security/agent.md",
+        ".agents/agents/spark_disruptor/agent.md",
+        ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
+        ".agents/skills/productivity-workload-governance/SKILL.md",
+        ".agents/skills/quality-audit-governance/SKILL.md",
+        ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
+        ".agents/skills/teams-standup-digest-notifier/SKILL.md",
+        ".agents/skills/ticket-backlog-governance/SKILL.md",
+        "Governance_Framework/AEGIS_Agent_System_Prompt.md",
+        "Governance_Framework/SAGE_Agent_System_Prompt.md",
+        ".agents/rules/sage-governance-prompt.md",
+    ]
 
 
 LANGUAGE_RECOMMENDATION_MATRIX: List[Tuple[str, str, str]] = [
@@ -345,6 +350,159 @@ def configure_custom_scanner(
         print("           [SKIP] No custom keywords added.")
 
 
+def plan_uninstallation(
+    target_dir: Path,
+    purge_secrets: bool = False,
+    purge_venv: bool = False,
+) -> Tuple[List[Path], List[Path]]:
+    """Resolve exact files and directories eligible for deletion.
+
+    Returns (files_to_delete, dirs_to_prune).
+    """
+    files_to_delete: List[Path] = []
+
+    # Tier 1: Canonical Kit Files
+    for rel_path in REQUIRED_KIT_FILES:
+        candidate = target_dir / rel_path
+        if candidate.is_file() or candidate.is_symlink():
+            if candidate not in files_to_delete:
+                files_to_delete.append(candidate)
+
+    # Tier 2: Generated Docs and Caches
+    generated_markers = ["ANTIGRAVITY_DOCS.html"]
+    for gen in generated_markers:
+        candidate = target_dir / gen
+        if candidate.is_file() and candidate not in files_to_delete:
+            files_to_delete.append(candidate)
+
+    # Tier 3: User Secrets and Keyword Blocklists
+    if purge_secrets:
+        for sec in [".env", CUSTOM_BLOCKLIST_FILENAME]:
+            candidate = target_dir / sec
+            if candidate.is_file() and candidate not in files_to_delete:
+                files_to_delete.append(candidate)
+
+    # Directories targeted for pruning (deepest first)
+    dirs_to_prune = [
+        target_dir / ".agents" / "agents" / "aegis_best_practice",
+        target_dir / ".agents" / "agents" / "atlas_architecture",
+        target_dir / ".agents" / "agents" / "sage_governance",
+        target_dir / ".agents" / "agents" / "sentinel_security",
+        target_dir / ".agents" / "agents" / "spark_disruptor",
+        target_dir / ".agents" / "skills" / "infrastructure-best-practice-analyser",
+        target_dir / ".agents" / "skills" / "ticket-backlog-governance",
+        target_dir / ".agents" / "skills" / "productivity-workload-governance",
+        target_dir / ".agents" / "skills" / "quality-audit-governance",
+        target_dir / ".agents" / "skills" / "teams-standup-digest-notifier",
+        target_dir / ".agents" / "skills" / "support-team-governance-analytics-coaching",
+        target_dir / ".agents" / "rules",
+        target_dir / ".agents" / "agents",
+        target_dir / ".agents" / "skills",
+        target_dir / ".agents",
+        target_dir / "Governance_Framework",
+    ]
+    if purge_venv:
+        dirs_to_prune.insert(0, target_dir / ".venv")
+
+    return files_to_delete, dirs_to_prune
+
+
+def execute_uninstallation(
+    target_dir: Path,
+    kit_dir: Path,
+    purge_secrets: bool = False,
+    purge_venv: bool = False,
+    dry_run: bool = False,
+    force: bool = False,
+) -> int:
+    """Safely uninstall kit files with root source repository protection."""
+    # Safety Check: Prevent self-destruction of the source repository
+    is_source_repo = (target_dir / ".git").exists() and (target_dir / "setup.py").resolve() == Path(__file__).resolve()
+    if is_source_repo and not force:
+        print("[ERROR] Target directory appears to be the PANTHEON source repository clone.", file=sys.stderr)
+        print("        To prevent accidental source deletion, pass --target-dir <path> of an external workspace", file=sys.stderr)
+        print("        or supply --force if you specifically intend to strip kit files from this workspace.", file=sys.stderr)
+        return 1
+
+    files_to_delete, dirs_to_prune = plan_uninstallation(target_dir, purge_secrets, purge_venv)
+
+    print("\n" + "=" * 78)
+    print(f"  PANTHEON AI SETUP KIT - UNINSTALLATION & CLEANUP{' (DRY RUN)' if dry_run else ''}")
+    print("=" * 78)
+    print(f"  Target Workspace : {target_dir}")
+    print(f"  Files Identified : {len(files_to_delete)}")
+    print(f"  Purge Secrets    : {'YES (.env & custom blocklist will be deleted)' if purge_secrets else 'NO (kept intact)'}")
+    print(f"  Purge .venv      : {'YES' if purge_venv else 'NO'}")
+    print("=" * 78)
+
+    if not files_to_delete and not any(d.exists() for d in dirs_to_prune):
+        print("No PANTHEON AI Setup Kit files found in target workspace.")
+        return 0
+
+    for f in files_to_delete:
+        try:
+            rel = f.relative_to(target_dir)
+        except ValueError:
+            rel = f
+        print(f"  [-] {rel}")
+
+    if dry_run:
+        print("\n[DRY RUN] No files were removed.")
+        return 0
+
+    if not force and sys.stdin.isatty():
+        try:
+            confirm = input("\nAre you sure you want to delete these kit components? [y/N]: ").strip().lower()
+        except EOFError:
+            confirm = "n"
+        if confirm not in ("y", "yes"):
+            print("[ABORTED] Uninstallation cancelled by user.")
+            return 0
+
+    # 1. Delete canonical files (defer setup.py until end if it's running)
+    deleted_count = 0
+    setup_file: Optional[Path] = None
+    for f in files_to_delete:
+        if f.name == "setup.py" and f.resolve() == Path(__file__).resolve():
+            setup_file = f
+            continue
+        try:
+            if f.exists():
+                f.unlink()
+                deleted_count += 1
+        except Exception as exc:
+            print(f"  [WARN] Failed to delete {f.name}: {exc}", file=sys.stderr)
+
+    # 2. Prune directories bottom-up only if empty
+    for d in dirs_to_prune:
+        if d.exists() and d.is_dir():
+            if d.name == ".venv" and purge_venv:
+                try:
+                    shutil.rmtree(d, ignore_errors=True)
+                    print(f"  [REMOVED DIR] {d.relative_to(target_dir)}")
+                except Exception as exc:
+                    print(f"  [WARN] Failed to remove .venv: {exc}", file=sys.stderr)
+            else:
+                try:
+                    # Remove only if directory is empty (preserves custom files added by user)
+                    if not any(d.iterdir()):
+                        d.rmdir()
+                        print(f"  [REMOVED EMPTY DIR] {d.relative_to(target_dir)}")
+                except Exception:
+                    pass
+
+    # Finally delete running setup.py if it was targeted
+    if setup_file and setup_file.exists():
+        try:
+            setup_file.unlink()
+            deleted_count += 1
+        except Exception as exc:
+            print(f"  [WARN] Failed to delete {setup_file.name}: {exc}", file=sys.stderr)
+
+    print(f"\n[OK] Successfully uninstalled {deleted_count} kit file(s).")
+    return 0
+
+
 def detect_executable(names: List[str]) -> Tuple[Optional[str], str]:
     """Locate an executable on PATH and return (resolved_path, version_string)."""
     for name in names:
@@ -516,6 +674,37 @@ def main() -> int:
         action="store_true",
         help="Skip running validate_kit.py after bootstrapping.",
     )
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="Safely uninstall PANTHEON AI Setup Kit files from target workspace.",
+    )
+    parser.add_argument(
+        "--purge-secrets",
+        action="store_true",
+        help="Delete .env and .custom_blocklist.json during uninstallation.",
+    )
+    parser.add_argument(
+        "--purge-venv",
+        action="store_true",
+        help="Delete local virtual environment (.venv) during uninstallation.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview uninstallation plan without deleting any files.",
+    )
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Confirm uninstallation non-interactively.",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Bypass source repository self-deletion protection and confirmation prompts.",
+    )
 
     args = parser.parse_args()
     kit_dir = Path(__file__).resolve().parent
@@ -524,6 +713,16 @@ def main() -> int:
     if args.guide_only:
         print_language_guide()
         return 0
+
+    if args.uninstall:
+        return execute_uninstallation(
+            target_dir=target_dir,
+            kit_dir=kit_dir,
+            purge_secrets=args.purge_secrets,
+            purge_venv=args.purge_venv,
+            dry_run=args.dry_run,
+            force=args.force or args.yes,
+        )
 
     return bootstrap_workspace(
         kit_dir=kit_dir,

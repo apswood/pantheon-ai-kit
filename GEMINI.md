@@ -134,6 +134,12 @@ mypy src/
 # 4. Offline fixture validation (Python & PowerShell)
 python Tests/run_fixtures.py
 pwsh -File AutomationPS/Tests/Invoke-FixtureTests.ps1
+
+# 5. Surgical uninstallation & decommissioning (dry-run and execution)
+python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" --dry-run
+python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" -y
+pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Workspaces\ServiceDeliveryOps" -WhatIf
+pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Workspaces\ServiceDeliveryOps" -Force
 ```
 
 ---
@@ -159,7 +165,8 @@ pwsh -File AutomationPS/Tests/Invoke-FixtureTests.ps1
 - [x] **Specialist Multi-Agent Team (5 Agents)**: Deployed `AEGIS`, `ATLAS`, `SAGE`, `SENTINEL`, and `SPARK` in `.agents/agents/`.
 - [x] **Governance & Infrastructure Skills (6 Skills)**: Configured 6 progressive-disclosure skills in `.agents/skills/`.
 - [x] **AEGIS Copy-Paste Prompt & API Pipeline Blueprint**: Added `Governance_Framework/AEGIS_Agent_System_Prompt.md`.
+- [x] **Workspace Lifecycle Symmetry & Surgical Uninstallation**: Added `--uninstall`, `--purge-secrets`, `--dry-run`, and source-repo protection to `setup.py` and `validate_and_install.ps1`.
 - [ ] **Future Project (Untested)**: Implement tracer-bullet Slice 1 of the `AEGIS` multi-vendor API config ingestion pipeline.
 
 ---
-*Last Updated: 2026-10-19 (Session 2: Added AEGIS System Prompt, API Pipeline Blueprint, Skill vs. Agent Guide & Skills For Real Engineers Patterns)*
+*Last Updated: 2026-10-19 (Session 3: Added Symmetrical File Removal & Surgical Uninstaller to setup.py and validate_and_install.ps1)*
