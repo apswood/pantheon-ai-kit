@@ -1,0 +1,132 @@
+# =========================================================================
+# Support Governance & Multi-Agent Starter Kit - Git Ignore Specification
+# =========================================================================
+# This file prevents sensitive credentials, customer ticket data, virtual
+# environments, build artifacts, and transient agent scratchpads from being
+# accidentally committed to version control.
+# =========================================================================
+
+# -------------------------------------------------------------------------
+# 1. Secrets, Environment Variables & Custom Leak Scanner Libraries (NEVER COMMIT)
+# -------------------------------------------------------------------------
+.env
+.env.*
+*.env
+.envrc
+secrets.*
+credentials.*
+.pypirc
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+
+# Local company-specific encoded leak scanner keyword libraries ($EncodedRules)
+.custom_blocklist.json
+.custom_blocklist.*
+.leak_blocklist.json
+
+# Explicitly track safe configuration templates and example schemas
+!.env.template
+!*.env.template
+!.env.example
+!*.env.example
+
+# -------------------------------------------------------------------------
+# 2. Production / Customer Ticket Data & Sensitive API Exports
+# Raw exports contain customer names, journal notes, PII, and credentials.
+# -------------------------------------------------------------------------
+**/Data/*.json
+**/Data/*.csv
+**/Data/*.xlsx
+**/Data/*.xls
+**/Data/*.txt
+**/Data/*.md
+**/Data/raw/
+**/Data/processed/
+**/outputs/
+!**/Data/.gitkeep
+!**/Data/*.template.txt
+
+# Ad-hoc debug, dump, or diff output files
+*_output.txt
+*_dump.json
+comparison_output.txt
+
+# -------------------------------------------------------------------------
+# 3. Automation Flow Packages & Build Artifacts
+# Flow zips embed tenant IDs, connection GUIDs, and user email addresses.
+# -------------------------------------------------------------------------
+*.zip
+PowerAutomate_*/
+
+# -------------------------------------------------------------------------
+# 4. Python Bytecode, Compilations & Standalone Executables
+# -------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+*.spec.bak
+
+# -------------------------------------------------------------------------
+# 5. Virtual Environments & Runtime Isolation
+# -------------------------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# -------------------------------------------------------------------------
+# 6. Static Analysis, Linters, Type Checkers & Test Caches
+# -------------------------------------------------------------------------
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# -------------------------------------------------------------------------
+# 7. IDE, Editor & Antigravity Metadata
+# -------------------------------------------------------------------------
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# Antigravity multi-agent workspace discovery rules:
+# We TRACK specialist agents (.agents/agents/) and governance skills (.agents/skills/),
+# but IGNORE transient teamwork subagent scratchpads, handoffs, and transcripts.
+.agents/teamwork/
+.gemini/antigravity/transcript.jsonl
+.gemini/antigravity/artifacts/
+
+# -------------------------------------------------------------------------
+# 8. Operating System Metadata
+# -------------------------------------------------------------------------
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
