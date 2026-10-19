@@ -3,7 +3,8 @@
 
 > **Description**: A starter kit for building AI agents and skills for multi-agent AI service governance, operational excellence & infrastructure hardening setup kit for Enterprise IT, Service Operations & MSPs. Grounded in **ITIL 4 & ITIL 5**, **NIST SP 800-53/CSF 2.0**, **NCSC & Cyber Essentials Plus** aligned operational resilience (`PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux`).  
 > **PANTHEON** — *Platform for AI-Native Technical Hygiene, Excellence & Operational Navigation*  
-> **Repository**: [`https://github.com/apswood/pantheon-ai-kit.git`](https://github.com/apswood/pantheon-ai-kit.git) (`pantheon-ai-kit`)
+> **Repository**: [`https://github.com/apswood/pantheon-ai-kit.git`](https://github.com/apswood/pantheon-ai-kit.git) (`pantheon-ai-kit`)  
+> **Live Documentation Portal**: [`https://apswood.github.io/pantheon-ai-kit/`](https://apswood.github.io/pantheon-ai-kit/) (`ANTIGRAVITY_DOCS.html`)
 
 ---
 
