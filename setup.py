@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""setup.py - Antigravity Support Governance & Multi-Agent Setup Kit Bootstrapper.
+"""setup.py - PANTHEON AI Agent and Skills Setup Kit for Service Governance Bootstrapper.
 
-Provides cross-platform workspace initialization, runtime readiness inspection,
-virtual environment (.venv) provisioning, .env.template mirroring, local HTML
-wiki compilation, and automated kit validation.
+Provides zero-clone remote kit download (when run standalone), cross-platform
+workspace initialization, runtime readiness inspection, virtual environment (.venv)
+provisioning, .env.template mirroring, optional custom keyword leak scanner builder
+(.custom_blocklist.json), local HTML wiki compilation, and automated kit validation.
 
 ================================================================================
 ARCHITECTURAL NOTE: SYSTEMS SCRIPTING (POWERSHELL) VS. GENERAL-PURPOSE (PYTHON)
@@ -59,12 +60,44 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
+import urllib.request
 import venv
+import zipfile
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 
 CUSTOM_BLOCKLIST_FILENAME = ".custom_blocklist.json"
+REPO_ZIP_URL = "https://github.com/apswood/pantheon-ai-kit/archive/refs/heads/main.zip"
+REPO_RAW_BASE_URL = "https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main"
+
+REQUIRED_KIT_FILES: List[str] = [
+    "README.md",
+    "ANTIGRAVITY_SETUP_GUIDE.md",
+    "ANTIGRAVITY_DOCS.html",
+    "GEMINI.md",
+    ".env.template",
+    ".gitignore",
+    "setup.py",
+    "build_docs.py",
+    "validate_kit.py",
+    "validate_and_install.ps1",
+    ".agents/agents/aegis_best_practice/agent.md",
+    ".agents/agents/atlas_architecture/agent.md",
+    ".agents/agents/sage_governance/agent.md",
+    ".agents/agents/sentinel_security/agent.md",
+    ".agents/agents/spark_disruptor/agent.md",
+    ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
+    ".agents/skills/productivity-workload-governance/SKILL.md",
+    ".agents/skills/quality-audit-governance/SKILL.md",
+    ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
+    ".agents/skills/teams-standup-digest-notifier/SKILL.md",
+    ".agents/skills/ticket-backlog-governance/SKILL.md",
+    "Governance_Framework/AEGIS_Agent_System_Prompt.md",
+    "Governance_Framework/SAGE_Agent_System_Prompt.md",
+    ".agents/rules/sage-governance-prompt.md",
+]
 
 
 LANGUAGE_RECOMMENDATION_MATRIX: List[Tuple[str, str, str]] = [
@@ -101,6 +134,56 @@ LANGUAGE_RECOMMENDATION_MATRIX: List[Tuple[str, str, str]] = [
 ]
 
 
+def ensure_kit_files_present(kit_dir: Path) -> None:
+    """Download missing kit components from GitHub if setup.py is executed standalone without cloning."""
+    key_markers = [
+        kit_dir / "GEMINI.md",
+        kit_dir / "validate_kit.py",
+        kit_dir / "build_docs.py",
+        kit_dir / ".agents" / "agents" / "aegis_best_practice" / "agent.md",
+    ]
+    if all(p.exists() for p in key_markers):
+        return
+
+    print("\n[REMOTE BOOTSTRAP] Local kit files not found. Downloading PANTHEON AI Setup Kit from GitHub...")
+    print(f"                   Destination: {kit_dir}")
+    kit_dir.mkdir(parents=True, exist_ok=True)
+
+    downloaded_zip = False
+    with tempfile.TemporaryDirectory(prefix="pantheon_kit_") as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        zip_path = tmp_path / "pantheon-ai-kit.zip"
+        try:
+            req = urllib.request.Request(REPO_ZIP_URL, headers={"User-Agent": "Pantheon-AI-Kit-Bootstrap/1.0"})
+            with urllib.request.urlopen(req, timeout=30) as resp, open(zip_path, "wb") as out_f:
+                shutil.copyfileobj(resp, out_f)
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                zf.extractall(tmp_path / "extracted")
+            extracted_roots = [p for p in (tmp_path / "extracted").iterdir() if p.is_dir()]
+            src_root = extracted_roots[0] if extracted_roots else (tmp_path / "extracted")
+            if (src_root / "GEMINI.md").exists():
+                for item in src_root.iterdir():
+                    dest = kit_dir / item.name
+                    if item.is_dir():
+                        shutil.copytree(item, dest, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(item, dest)
+                downloaded_zip = True
+                print("                   [OK] Downloaded and extracted all PANTHEON AI Setup Kit components.")
+        except Exception as exc:
+            print(f"                   [WARN] Archive download failed ({exc}). Falling back to raw file download...")
+
+    if not downloaded_zip:
+        for rel_path in REQUIRED_KIT_FILES:
+            dest_file = kit_dir / rel_path
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            raw_url = f"{REPO_RAW_BASE_URL}/{rel_path}"
+            req = urllib.request.Request(raw_url, headers={"User-Agent": "Pantheon-AI-Kit-Bootstrap/1.0"})
+            with urllib.request.urlopen(req, timeout=20) as resp, open(dest_file, "wb") as out_f:
+                shutil.copyfileobj(resp, out_f)
+        print(f"                   [OK] Downloaded all {len(REQUIRED_KIT_FILES)} canonical files from GitHub.")
+
+
 def encode_reversed_base64(plain_text: str) -> str:
     """Reverse UTF-8 string and Base64-encode it to match the $EncodedRules format."""
     reversed_text = plain_text[::-1]
@@ -119,6 +202,26 @@ def build_keyword_rule(label: str, custom_regex: Optional[str] = None) -> Dict[s
         "NameB64": encode_reversed_base64(clean_label),
         "PatB64": encode_reversed_base64(pat_str),
     }
+
+
+def parse_keyword_entries(raw_input: str) -> List[Tuple[str, Optional[str]]]:
+    """Parse single, comma-separated, or multi-line keyword inputs (supporting 'Label::Regex')."""
+    results: List[Tuple[str, Optional[str]]] = []
+    for line in raw_input.splitlines():
+        line_clean = line.strip()
+        if not line_clean or line_clean.lower() in ("done", "exit", "quit", "q"):
+            continue
+        for part in line_clean.split(","):
+            tok = part.strip()
+            if not tok or tok.lower() in ("done", "exit", "quit", "q"):
+                continue
+            if "::" in tok:
+                lbl, rgx = tok.split("::", 1)
+                if lbl.strip():
+                    results.append((lbl.strip(), rgx.strip() if rgx.strip() else None))
+            else:
+                results.append((tok, None))
+    return results
 
 
 def ensure_gitignore_entry(workspace_dir: Path, entry_name: str = CUSTOM_BLOCKLIST_FILENAME) -> None:
@@ -163,14 +266,9 @@ def configure_custom_scanner(
 
     # Handle non-interactive CLI keywords if provided via --add-scanner-keyword
     if cli_keywords:
-        for kw in cli_keywords:
-            if not kw.strip():
-                continue
-            if "::" in kw:
-                lbl, rgx = kw.split("::", 1)
+        for kw_arg in cli_keywords:
+            for lbl, rgx in parse_keyword_entries(kw_arg):
                 existing_rules.append(build_keyword_rule(lbl, rgx))
-            else:
-                existing_rules.append(build_keyword_rule(kw))
         lib_path.write_text(json.dumps(existing_rules, indent=2), encoding="utf-8")
         ensure_gitignore_entry(workspace_dir, CUSTOM_BLOCKLIST_FILENAME)
         print(
@@ -205,29 +303,39 @@ def configure_custom_scanner(
             print("           [SKIP] Skipped custom keyword scanner setup (run 'python setup.py --configure-scanner' anytime).")
             return
 
-    print("\n           --- Custom $EncodedRules Keyword Library Builder ---")
-    print(f"           Existing rules in {CUSTOM_BLOCKLIST_FILENAME}: {len(existing_rules)}")
-    print("           Enter company names, domains, colleague names, or resource IDs one by one.")
-    print("           Each entry is encoded (Reversed UTF-8 + Base64) and excluded via .gitignore.")
-    print("           Press Enter on an empty line when finished.\n")
+    print("\n           ----------------------------------------------------------------------")
+    print("             CUSTOM KEYWORD LEAK SCANNER BUILDER ($EncodedRules Library)")
+    print("           ----------------------------------------------------------------------")
+    print(f"           Currently loaded custom rules in {CUSTOM_BLOCKLIST_FILENAME}: {len(existing_rules)}")
+    print("           How to add organization-specific keywords:")
+    print("             * Enter a single keyword (e.g. <YourCompanyName>) OR multiple")
+    print("               comma-separated keywords on one line (e.g. <Company>, <internal.domain>)")
+    print("             * Optional custom regex: use 'Label::Regex' (e.g. CorpDomain::\\bcorp\\.local\\b)")
+    print("             * To finish at any prompt: press [Enter] on an empty line or type 'done'")
+    print("           All rules are Reversed UTF-8 + Base64 encoded and added to .gitignore.\n")
 
     added = 0
     while True:
         try:
-            label = input("           Keyword / Label to block (or press Enter to finish): ").strip()
+            raw_line = input("           Enter keyword(s) to block (comma-separated, or press Enter / type 'done' to finish): ").strip()
         except EOFError:
             break
-        if not label:
+        if not raw_line or raw_line.lower() in ("done", "exit", "quit", "q"):
             break
-        try:
-            custom_pat = input("           Optional custom regex (or press Enter for auto word-boundary regex): ").strip()
-        except EOFError:
-            custom_pat = ""
 
-        rule = build_keyword_rule(label, custom_pat if custom_pat else None)
-        existing_rules.append(rule)
-        added += 1
-        print(f"             + Added encoded rule (#{len(existing_rules)}): NameB64='{rule['NameB64']}'")
+        parsed_entries = parse_keyword_entries(raw_line)
+        for lbl, rgx in parsed_entries:
+            rule = build_keyword_rule(lbl, rgx)
+            existing_rules.append(rule)
+            added += 1
+            print(f"             + Added encoded rule (#{len(existing_rules)}) for '{lbl}' -> NameB64='{rule['NameB64']}'")
+
+        try:
+            more = input("           Add more keywords? [y/N - Press Enter to finish & save]: ").strip().lower()
+        except EOFError:
+            more = "n"
+        if more not in ("y", "yes"):
+            break
 
     if added > 0 or lib_path.exists():
         lib_path.write_text(json.dumps(existing_rules, indent=2), encoding="utf-8")
@@ -292,6 +400,9 @@ def bootstrap_workspace(
         print(f"  Windows PS 5.1 : {ps5_ver} (Legacy - supported for bootstrap, avoid for JSON APIs)")
 
     print_language_guide()
+
+    # If setup.py was downloaded standalone without the rest of the repo, fetch the missing kit files
+    ensure_kit_files_present(kit_dir)
 
     # 1. Mirror .env.template -> .env in target directory when initializing a project workspace
     env_template = kit_dir / ".env.template"
@@ -388,7 +499,7 @@ def main() -> int:
         action="append",
         dest="scanner_keywords",
         default=None,
-        help="Add a custom keyword (or 'Label::RegexPattern') to .custom_blocklist.json and ensure it is in .gitignore.",
+        help="Add custom keyword(s) (comma-separated or 'Label::RegexPattern') to .custom_blocklist.json and ensure it is in .gitignore.",
     )
     parser.add_argument(
         "--skip-custom-scanner",

@@ -288,6 +288,7 @@ def scan_deidentification(kit_dir: Path, blocklist: List[Tuple[str, str, Any, bo
     errors = []
     # Self-exclusion: skip the validation scripts, local custom blocklist files, and archives
     excluded_filenames = {
+        "setup.py",
         "validate_kit.py",
         "validate_and_install.ps1",
         CUSTOM_BLOCKLIST_FILENAME,

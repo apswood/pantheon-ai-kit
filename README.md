@@ -191,23 +191,23 @@ The six governance and best-practice skills encapsulate the analytical formulas,
 
 ## 5. Quickstart Bootstrap Workflow
 
-Follow this 5-step operational workflow to drop the starter kit into any project workspace and verify compliance:
+You do **not** need to clone or manually download the GitHub repository beforehand. A single PowerShell command (`irm ... | iex`) automatically downloads `validate_and_install.ps1`, `setup.py`, and all 24 canonical kit components into your target workspace, initializes `.env`, offers the optional custom keyword leak scanner builder, and validates all compliance checks:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                             5-STEP QUICKSTART BOOTSTRAP WORKFLOW                        │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                         │
-│   STEP 1: Unpack or Copy Kit Directory into Target Workspace                           │
-│           Copy Antigravity_Governance_Setup_Kit contents into project root           │
+│   STEP 1: Zero-Clone Single-Command Bootstrap (Downloads & Runs Kit Automatically)      │
+│           irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex │
 │                                           │                                             │
 │                                           ▼                                             │
 │   STEP 2: Instantiate Local Environment Configuration                                   │
-│           copy .env.template .env  (populate instance URLs, tenant IDs, webhooks)       │
+│           Created automatically (.env from .env.template — populate tenant/API keys)    │
 │                                           │                                             │
 │                                           ▼                                             │
-│   STEP 3: Run Automated Pre-Flight Validation                                           │
-│           python validate_kit.py  OR  pwsh ./validate_and_install.ps1 -ValidateOnly     │
+│   STEP 3: Optional Custom Keyword Scanner & Pre-Flight Validation                       │
+│           Enter comma-separated keywords (or press Enter to skip/finish) & validate     │
 │                                           │                                             │
 │                                           ▼                                             │
 │   STEP 4: Launch Project Workspace in Google Antigravity                                │
@@ -220,23 +220,22 @@ Follow this 5-step operational workflow to drop the starter kit into any project
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Step 1: Obtain & Copy the Starter Kit
-Extract the distributable archive or copy the folder contents into your target workspace root:
+### Step 1: Zero-Clone Single-Command Bootstrap (`irm | iex`)
+Open PowerShell (`pwsh` 7.2+ recommended, or Windows PowerShell 5.1) in your target project directory and run a single command—no `git clone` or manual ZIP download required:
 ```powershell
-# Option A: Using the automated PowerShell installer
-pwsh -File .\Antigravity_Governance_Setup_Kit\validate_and_install.ps1 -Install -TargetWorkspace "C:\Workspaces\ServiceDeliveryOps"
+# Option A (Recommended — Zero-Clone One-Liner): Download all 24 kit files (validate_and_install.ps1, setup.py, agents, skills, docs) into the current directory & run setup:
+mkdir C:\Workspaces\ServiceDeliveryOps; cd C:\Workspaces\ServiceDeliveryOps
+irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
 
-# Option B: Manual copy into existing workspace
-Copy-Item -Path ".\Antigravity_Governance_Setup_Kit\*" -Destination "C:\Workspaces\ServiceDeliveryOps\" -Recurse -Force
+# Option B (Zero-Clone One-Liner into a Specific Target Folder):
+$env:PANTHEON_TARGET_DIR = "C:\Workspaces\ServiceDeliveryOps"; irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
+
+# Option C (If you already cloned or downloaded the repo locally):
+pwsh -NoProfile -File .\validate_and_install.ps1 -Install -TargetWorkspace "C:\Workspaces\ServiceDeliveryOps"
 ```
 
 ### Step 2: Configure Environment Secrets (`.env`)
-Create your private `.env` file from the committed template:
-```powershell
-cd C:\Workspaces\ServiceDeliveryOps
-Copy-Item .env.template .env
-```
-Open `.env` in your text editor and configure the necessary parameters:
+The bootstrapper automatically copies `.env.template` to `.env` if `.env` does not exist yet (or you can run `Copy-Item .env.template .env` manually). Open `.env` in your text editor and configure the necessary parameters:
 ```ini
 # ITSM Configuration
 INSTANCE_URL=https://your-instance.service-now.com
@@ -255,6 +254,8 @@ TEAMS_DIGEST_WEBHOOK=https://your-webhook-endpoint-url
 To guarantee that **zero reversible organization-specific text** exists in the upstream repository, [`validate_kit.py`](validate_kit.py) and [`validate_and_install.ps1`](validate_and_install.ps1) ship only with **generic credential/key regex rules** (`PEM Private Keys`, `GitHub PATs`, `AWS Access Key IDs`, `Slack API Tokens`, `Hardcoded OAuth Client Secrets`).
 
 During setup, you can optionally opt in to build a **local library of custom organization keywords, domains, colleague names, or resource IDs** (`$EncodedRules` stored in `.custom_blocklist.json`):
+- **Single or Comma-Separated Input**: Enter a single keyword (`AcmeCorp`) or multiple comma-separated keywords on one line (`AcmeCorp, acme.internal, ProjectX`), or use `Label::Regex` (`AcmeDomain::\bacme\.internal\b`) for custom regexes.
+- **Easy Exit with `[Enter]`**: After entering your keyword(s), press **`[Enter]`** at `Add more keywords? [y/N - Press Enter to finish & save]` (or press `[Enter]` on an empty prompt / type `done`) to immediately save `.custom_blocklist.json` and finish.
 - **How it works**: Each keyword and regex pattern you enter is **Reversed UTF-8 + Base64 encoded** (`NameB64` and `PatB64`) and saved to `.custom_blocklist.json` so naive `grep` searches never self-trigger on the rule file.
 - **Automatic `.gitignore` Protection**: Whenever you opt in, `setup.py` and `validate_and_install.ps1` automatically ensure `.custom_blocklist.json` is listed in `.gitignore` so your organization's custom keywords are **never** committed upstream.
 - **Skippable at any time**: Press `Enter` or `N` during interactive setup (or pass `--skip-custom-scanner` / `-SkipCustomScanner`) to skip this step.
@@ -263,15 +264,15 @@ During setup, you can optionally opt in to build a **local library of custom org
 # Option A: Interactive custom keyword scanner builder via Python setup.py
 python setup.py --configure-scanner
 
-# Option B: Append custom keywords non-interactively via CLI (supports Label or Label::CustomRegex)
-python setup.py --add-scanner-keyword "AcmeCorp" --add-scanner-keyword "AcmeDomain::\bacme\.internal\b"
+# Option B: Append custom keywords non-interactively via CLI (supports comma-separated or Label::CustomRegex)
+python setup.py --add-scanner-keyword "AcmeCorp, acme.internal" --add-scanner-keyword "AcmeDomain::\bacme\.internal\b"
 
 # Option C: Interactive custom keyword scanner builder via PowerShell
 pwsh -NoProfile -File .\validate_and_install.ps1 -ConfigureCustomScanner
 ```
 
 ### Step 3: Run Automated Pre-Flight Validation
-Before running any code or launching Antigravity, verify that all files, YAML frontmatters, generic secret patterns, and any optional local `.custom_blocklist.json` rules are 100% compliant:
+When you run `irm ... | iex`, pre-flight validation runs automatically. You can also re-run validation at any time to verify that all files, YAML frontmatters, generic secret patterns, and any optional local `.custom_blocklist.json` rules are 100% compliant:
 
 ```powershell
 # Method 1: Using Python 3.10+ (Standard Library only - zero pip dependencies required)

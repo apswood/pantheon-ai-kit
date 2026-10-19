@@ -936,31 +936,51 @@ To install the kit into an existing or new workspace, place the unzipped `./Anti
 
 *Discovery Precedence*: Workspace customizations in `.agents/` take highest priority over global user preferences and IDE defaults, ensuring every team member working in the repository experiences identical agent behaviors and governance rules.
 
-### 7.2 Automated Workspace Validation & Bootstrap
-Before running any automation or dispatching agents, execute either the Python bootstrapper (`setup.py`) or the PowerShell validator/installer (`validate_and_install.ps1`) to verify structure, YAML frontmatter, runtime readiness, and credential safety.
+### 7.2 Automated Zero-Clone Workspace Bootstrap (`irm | iex`), `setup.py`, and Validation
+You do **not** need to clone or manually download the GitHub repository before setting up a workspace. Both [`validate_and_install.ps1`](validate_and_install.ps1) and [`setup.py`](setup.py) are self-bootstrapping: if run in a directory where the 24 canonical kit files are not yet present, they automatically download and extract the complete kit from `https://github.com/apswood/pantheon-ai-kit`, initialize `.env` from `.env.template`, offer the optional custom keyword leak scanner builder (`.custom_blocklist.json`, protected by `.gitignore`), and run all 4 validation stages.
 
-#### Option A: Cross-Platform Python Bootstrapper (`setup.py`)
-```bash
-# 1. Inspect host runtimes, print the Python vs. PowerShell guide, rebuild the HTML docs, and validate the kit
+#### Option A (Recommended — Zero-Clone PowerShell One-Liner via `irm | iex`)
+```powershell
+# 1. Zero-clone bootstrap into your current directory (downloads validate_and_install.ps1, setup.py & all 24 components):
+mkdir C:\Workspaces\ITSM_Support_Analytics; cd C:\Workspaces\ITSM_Support_Analytics
+irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
+
+# 2. Zero-clone bootstrap into a specific target folder via environment variable:
+$env:PANTHEON_TARGET_DIR = "C:\Workspaces\ITSM_Support_Analytics"; irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
+
+# 3. Zero-clone non-interactive bootstrap (skipping optional custom keyword scanner prompt):
+$env:PANTHEON_SKIP_SCANNER = "1"; irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
+```
+
+#### Option B: Cross-Platform Python Bootstrapper (`setup.py`)
+```powershell
+# 1. Zero-clone Python one-liner (downloads setup.py, which automatically fetches all 24 kit files & runs setup):
+irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/setup.py -OutFile setup.py; python setup.py --init-env
+
+# 2. Inspect host runtimes, print the Python vs. PowerShell guide, rebuild the HTML docs, and validate the kit:
 python setup.py
 
-# 2. Initialize a local .env from .env.template and provision an isolated .venv virtual environment
+# 3. Initialize a local .env from .env.template and provision an isolated .venv virtual environment:
 python setup.py --init-env --venv
 
-# 3. Print only the Python vs. PowerShell Language Selection Matrix
-python setup.py --guide-only
+# 4. Build or append to the local custom $EncodedRules keyword library (.custom_blocklist.json, gitignored):
+python setup.py --configure-scanner
+python setup.py --add-scanner-keyword "AcmeCorp, acme.internal" --add-scanner-keyword "AcmeDomain::\bacme\.internal\b"
 ```
 
-#### Option B: Native PowerShell Validator & Installer (`validate_and_install.ps1`)
+#### Option C: Local PowerShell Validator & Installer (`validate_and_install.ps1`)
 ```powershell
-# 1. Validate kit integrity, frontmatter, and scan for proprietary leaks
-pwsh -File ./validate_and_install.ps1 -ValidateOnly
+# 1. Validate kit integrity, frontmatter, generic secret patterns, and any local .custom_blocklist.json rules:
+pwsh -NoProfile -File ./validate_and_install.ps1 -ValidateOnly
 
-# 2. Alternatively, install directly from the kit folder into a target workspace
-pwsh -File ./validate_and_install.ps1 -Install -TargetWorkspace "C:\Workspaces\ITSM_Support_Analytics"
+# 2. Configure or add to the local custom $EncodedRules keyword library (.custom_blocklist.json):
+pwsh -NoProfile -File ./validate_and_install.ps1 -ConfigureCustomScanner
+
+# 3. Install from a local kit folder into another target workspace:
+pwsh -NoProfile -File ./validate_and_install.ps1 -Install -TargetWorkspace "C:\Workspaces\ITSM_Support_Analytics"
 ```
 
-#### Option C: Standalone Python CLI Validator (`validate_kit.py`)
+#### Option D: Standalone Python CLI Validator (`validate_kit.py`)
 ```bash
 # Run comprehensive multi-stage validation
 python validate_kit.py --verbose
@@ -969,8 +989,8 @@ python validate_kit.py --verbose
 The validation pipeline executes four discrete checks:
 - **Stage 1 (Structure Check)**: Confirms presence and non-zero size of all 24 canonical kit files (5 specialist agents, 6 skills, 2 system prompts, rules, templates, and scripts) and verifies `GEMINI.md` is strictly `< 24,000 bytes`.
 - **Stage 2 (YAML Frontmatter Check)**: Verifies that every `agent.md` and `SKILL.md` file contains valid opening/closing `---` delimiters and non-empty `name` and `description` context pointers.
-- **Stage 3 (De-Identification Scan)**: Performs recursive regex scans against decoded Base64 patterns to guarantee zero proprietary organizational tags or personal credentials exist in the workspace.
-- **Stage 4 (Configuration Hygiene Check)**: Proves that `.gitignore` contains strict exclusion rules for `.env` and `.venv`, and that `.env.template` contains no plain text passwords.
+- **Stage 3 (De-Identification & Secret Leak Scan)**: Scans all files against 5 built-in generic credential/secret regex rules (`PEM Private Keys`, `GitHub PATs`, `AWS Access Key IDs`, `Slack API Tokens`, `Hardcoded OAuth Client Secrets`) plus any optional local custom `$EncodedRules` stored in `.custom_blocklist.json` (gitignored). Zero reversible organization-specific text is stored in the upstream repository.
+- **Stage 4 (Configuration Hygiene Check)**: Proves that `.gitignore` contains strict exclusion rules for `.env`, `.venv`, and `.custom_blocklist.json`, and that `.env.template` contains no plain text passwords.
 
 ### 7.3 Activating the 5 Specialist Advisory Agents
 The Setup Kit embeds five distinct multi-agent personas configured to advise on infrastructure hardening, enterprise systems architecture, service delivery governance, security compliance, and process optimization.

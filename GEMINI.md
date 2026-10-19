@@ -119,16 +119,19 @@ Establish your language boundary and folder seams *before* prompting the AI (see
 
 ### 4. Workspace Bootstrapping, Linting & Fixture Tests
 ```powershell
-# 1. Bootstrap workspace, print Python vs. PowerShell guide, rebuild HTML docs, and validate kit
+# 1. Zero-clone single-command bootstrap from GitHub (downloads kit, initializes .env, runs setup & validation)
+irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
+
+# 2. Local bootstrap, Python vs. PowerShell guide, HTML docs rebuild, and kit validation
 python setup.py
 pwsh -NoProfile -File .\validate_and_install.ps1 -ValidateOnly
 
-# 2. Static analysis & formatting
+# 3. Static analysis & formatting
 ruff check . --fix
 ruff format .
 mypy src/
 
-# 3. Offline fixture validation (Python & PowerShell)
+# 4. Offline fixture validation (Python & PowerShell)
 python Tests/run_fixtures.py
 pwsh -File AutomationPS/Tests/Invoke-FixtureTests.ps1
 ```

@@ -1,16 +1,18 @@
 <#
 .SYNOPSIS
-    Automated validator and bootstrap installer for PANTHEON AI Agent and Skills Setup Kit.
+    Automated zero-clone bootstrapper, validator, and installer for PANTHEON AI Agent and Skills Setup Kit.
 .DESCRIPTION
-    Validates kit file integrity, YAML frontmatter compliance, size boundaries, and executes
-    credential and custom blocklist leak scans natively in PowerShell (compatible with PowerShell 5.1 and 7+).
-    Zero reversible organization-specific text is stored in the upstream repository.
-    Optionally builds a local custom $EncodedRules keyword library (.custom_blocklist.json, gitignored)
-    and bootstraps the kit into a target Antigravity workspace directory.
+    Supports single-command remote bootstrap directly from GitHub via:
+        irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
+    If run in a directory where the 24 canonical kit files are not yet present, automatically downloads
+    and extracts the kit components (validate_and_install.ps1, setup.py, agents, skills, rules, and docs)
+    from https://github.com/apswood/pantheon-ai-kit, initializes .env from .env.template, offers the
+    optional custom keyword leak scanner builder (.custom_blocklist.json, protected by .gitignore),
+    validates all 4 compliance stages, and runs setup.py if Python is available.
 .PARAMETER ValidateOnly
-    Runs validation checks and exits without installing.
+    Runs the 4-stage validation checks and exits without copying or prompting.
 .PARAMETER TargetWorkspaceDir
-    Target directory path where the starter kit will be installed. Alias: TargetWorkspace.
+    Target directory path where the starter kit will be downloaded/installed. Alias: TargetWorkspace.
 .PARAMETER Install
     Explicit flag indicating installation mode into TargetWorkspaceDir.
 .PARAMETER Force
@@ -19,6 +21,12 @@
     Launches the interactive builder to add custom organization keywords/patterns to .custom_blocklist.json ($EncodedRules).
 .PARAMETER SkipCustomScanner
     Skips the optional interactive prompt for configuring custom scanner keywords during setup.
+.PARAMETER RepoZipUrl
+    GitHub archive ZIP URL used when bootstrapping via irm | iex without a local clone.
+.PARAMETER RepoRawBaseUrl
+    GitHub raw content base URL used as a fallback if archive ZIP download is blocked.
+.EXAMPLE
+    irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
 .EXAMPLE
     pwsh -NoProfile -File validate_and_install.ps1 -ValidateOnly
 .EXAMPLE
@@ -39,29 +47,57 @@ param(
 
     [switch]$ConfigureCustomScanner,
 
-    [switch]$SkipCustomScanner
+    [switch]$SkipCustomScanner,
+
+    [string]$RepoZipUrl = "https://github.com/apswood/pantheon-ai-kit/archive/refs/heads/main.zip",
+
+    [string]$RepoRawBaseUrl = "https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main"
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Detect if executed via Invoke-Expression (irm ... | iex) so we do not close the user's shell with 'exit'
+$IsIex = [string]::IsNullOrEmpty($PSScriptRoot)
+
+# Allow environment variable overrides when piped via irm | iex
+if (-not $TargetWorkspaceDir -and $env:PANTHEON_TARGET_DIR) {
+    $TargetWorkspaceDir = $env:PANTHEON_TARGET_DIR
+}
+if (-not $SkipCustomScanner -and ($env:PANTHEON_SKIP_SCANNER -match '^(1|true|yes)$')) {
+    $SkipCustomScanner = $true
+}
+
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "  PANTHEON AI SETUP KIT - POWERSHELL VALIDATOR & BOOTSTRAP            " -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
 
-# Resolve Kit Root Directory
-$KitRoot = $PSScriptRoot
-if (-not $KitRoot -or -not (Test-Path -LiteralPath (Join-Path $KitRoot "GEMINI.md"))) {
-    $KitRoot = (Get-Location).Path
-}
-if (-not (Test-Path -LiteralPath (Join-Path $KitRoot "GEMINI.md"))) {
-    $subDir = Join-Path $KitRoot "Antigravity_Governance_Setup_Kit"
-    if (Test-Path -LiteralPath (Join-Path $subDir "GEMINI.md")) {
-        $KitRoot = $subDir
-    }
-}
-
-Write-Host "Kit Root: $KitRoot`n" -ForegroundColor Gray
+$RequiredFiles = @(
+    "README.md",
+    "ANTIGRAVITY_SETUP_GUIDE.md",
+    "ANTIGRAVITY_DOCS.html",
+    "GEMINI.md",
+    ".env.template",
+    ".gitignore",
+    "setup.py",
+    "build_docs.py",
+    "validate_kit.py",
+    "validate_and_install.ps1",
+    ".agents/agents/aegis_best_practice/agent.md",
+    ".agents/agents/atlas_architecture/agent.md",
+    ".agents/agents/sage_governance/agent.md",
+    ".agents/agents/sentinel_security/agent.md",
+    ".agents/agents/spark_disruptor/agent.md",
+    ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
+    ".agents/skills/productivity-workload-governance/SKILL.md",
+    ".agents/skills/quality-audit-governance/SKILL.md",
+    ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
+    ".agents/skills/teams-standup-digest-notifier/SKILL.md",
+    ".agents/skills/ticket-backlog-governance/SKILL.md",
+    "Governance_Framework/AEGIS_Agent_System_Prompt.md",
+    "Governance_Framework/SAGE_Agent_System_Prompt.md",
+    ".agents/rules/sage-governance-prompt.md"
+)
 
 $CustomBlocklistFileName = ".custom_blocklist.json"
 
@@ -92,6 +128,72 @@ function Ensure-GitignoreEntry ([string]$WorkspaceDir, [string]$EntryName) {
     }
 }
 
+function Test-KitFilesPresent ([string]$DirPath) {
+    if (-not $DirPath -or -not (Test-Path -LiteralPath $DirPath)) { return $false }
+    foreach ($rel in @("GEMINI.md", "setup.py", "validate_kit.py", ".agents/agents/aegis_best_practice/agent.md")) {
+        if (-not (Test-Path -LiteralPath (Join-Path $DirPath $rel))) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Install-PantheonKitFromGitHub ([string]$DestinationDir) {
+    Write-Host "`n[REMOTE BOOTSTRAP] Local kit files not found. Downloading PANTHEON AI Setup Kit from GitHub..." -ForegroundColor Yellow
+    Write-Host "  Destination : $DestinationDir" -ForegroundColor Gray
+    Write-Host "  Source Repo : https://github.com/apswood/pantheon-ai-kit" -ForegroundColor Gray
+
+    if (-not (Test-Path -LiteralPath $DestinationDir)) {
+        New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
+    }
+
+    # Ensure TLS 1.2+ for Windows PowerShell 5.1 compatibility
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+    $downloadedViaZip = $false
+    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pantheon_kit_" + [Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
+
+    try {
+        $zipFile = Join-Path $tempRoot "pantheon-ai-kit.zip"
+        $extractDir = Join-Path $tempRoot "extracted"
+        Write-Host "  Downloading archive: $RepoZipUrl ..." -ForegroundColor Gray
+        Invoke-WebRequest -Uri $RepoZipUrl -OutFile $zipFile -UseBasicParsing
+        Expand-Archive -LiteralPath $zipFile -DestinationPath $extractDir -Force
+
+        $innerFolder = Get-ChildItem -Path $extractDir -Directory | Select-Object -First 1
+        $sourceRoot = if ($null -ne $innerFolder) { $innerFolder.FullName } else { $extractDir }
+
+        if (Test-Path -LiteralPath (Join-Path $sourceRoot "GEMINI.md")) {
+            Get-ChildItem -Path $sourceRoot -Force | ForEach-Object {
+                $destItem = Join-Path $DestinationDir $_.Name
+                Copy-Item -LiteralPath $_.FullName -Destination $destItem -Recurse -Force
+            }
+            $downloadedViaZip = $true
+            Write-Host "  [OK] Downloaded and extracted all PANTHEON AI Setup Kit components." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "  [WARN] Archive download failed ($($_.Exception.Message)). Falling back to individual raw file download..." -ForegroundColor Yellow
+    } finally {
+        if (Test-Path -LiteralPath $tempRoot) {
+            Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    if (-not $downloadedViaZip) {
+        foreach ($relPath in $RequiredFiles) {
+            $targetFile = Join-Path $DestinationDir ($relPath -replace '/', [System.IO.Path]::DirectorySeparatorChar)
+            $parentDir = Split-Path -Parent $targetFile
+            if (-not (Test-Path -LiteralPath $parentDir)) {
+                New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+            }
+            $rawUrl = "$RepoRawBaseUrl/$relPath"
+            Invoke-WebRequest -Uri $rawUrl -OutFile $targetFile -UseBasicParsing
+        }
+        Write-Host "  [OK] Downloaded all $($RequiredFiles.Count) canonical files via raw GitHub stream." -ForegroundColor Green
+    }
+}
+
 function Invoke-CustomScannerSetup ([string]$WorkspaceDir) {
     $libPath = Join-Path $WorkspaceDir $CustomBlocklistFileName
     $existingRules = [System.Collections.Generic.List[object]]::new()
@@ -114,31 +216,60 @@ function Invoke-CustomScannerSetup ([string]$WorkspaceDir) {
     Write-Host "  CUSTOM KEYWORD LEAK SCANNER BUILDER (`$EncodedRules Library)" -ForegroundColor Cyan
     Write-Host "----------------------------------------------------------------------" -ForegroundColor Cyan
     Write-Host "  Currently loaded custom rules in ${CustomBlocklistFileName}: $($existingRules.Count)" -ForegroundColor Gray
-    Write-Host "  Enter organization names, internal domains, colleague names, or" -ForegroundColor Gray
-    Write-Host "  resource identifiers to build your local `$EncodedRules library." -ForegroundColor Gray
-    Write-Host "  Each entry is Reversed UTF-8 + Base64 encoded into $CustomBlocklistFileName" -ForegroundColor Gray
-    Write-Host "  and automatically added to .gitignore (never committed upstream)." -ForegroundColor Gray
-    Write-Host "  Press Enter on an empty line when finished.`n" -ForegroundColor Gray
+    Write-Host "  How to add organization-specific keywords:" -ForegroundColor Gray
+    Write-Host "    * Enter a single keyword (e.g. <YourCompanyName>) OR multiple" -ForegroundColor Gray
+    Write-Host "      comma-separated keywords on one line (e.g. <Company>, <internal.domain>)" -ForegroundColor Gray
+    Write-Host "    * Optional custom regex: use 'Label::Regex' (e.g. CorpDomain::\bcorp\.local\b)" -ForegroundColor Gray
+    Write-Host "    * To finish at any prompt: press [Enter] on an empty line or type 'done'" -ForegroundColor Yellow
+    Write-Host "  All rules are Reversed UTF-8 + Base64 encoded and added to .gitignore.`n" -ForegroundColor Gray
 
     $added = 0
     while ($true) {
-        $label = Read-Host "  Keyword / Label to block (or press Enter to finish)"
-        if ([string]::IsNullOrWhiteSpace($label)) { break }
-        $label = $label.Trim()
+        $rawInput = Read-Host "  Enter keyword(s) to block (comma-separated, or press Enter / type 'done' to finish)"
+        if ([string]::IsNullOrWhiteSpace($rawInput)) { break }
+        $trimmedInput = $rawInput.Trim()
+        if ($trimmedInput -match '^(done|exit|quit|q)$') { break }
 
-        $customPat = Read-Host "  Optional custom regex (or press Enter to auto-generate word-boundary regex)"
-        if ([string]::IsNullOrWhiteSpace($customPat)) {
-            $escaped = [regex]::Escape($label) -replace '\\ ', '(?:\s+|\.)'
-            $patStr = "\b$escaped\b"
-        } else {
-            $patStr = $customPat.Trim()
+        # Support both multi-line paste (Shift+Enter) and comma-separated lists
+        $lines = $trimmedInput -split '\r?\n'
+        $candidates = [System.Collections.Generic.List[string]]::new()
+        foreach ($ln in $lines) {
+            if ([string]::IsNullOrWhiteSpace($ln)) { continue }
+            foreach ($part in ($ln -split ',')) {
+                if (-not [string]::IsNullOrWhiteSpace($part)) {
+                    $candidates.Add($part.Trim())
+                }
+            }
         }
 
-        $nameB64 = ConvertTo-ReversedBase64 $label
-        $patB64 = ConvertTo-ReversedBase64 $patStr
-        $existingRules.Add(@{ NameB64 = $nameB64; PatB64 = $patB64 })
-        $added++
-        Write-Host "    + Added encoded rule (#$($existingRules.Count)): NameB64='$nameB64'" -ForegroundColor Green
+        foreach ($entry in $candidates) {
+            if ($entry -match '^(done|exit|quit|q)$') { continue }
+            if ($entry -match '::') {
+                $splitParts = $entry -split '::', 2
+                $label = $splitParts[0].Trim()
+                $patStr = $splitParts[1].Trim()
+                if ([string]::IsNullOrWhiteSpace($label)) { continue }
+                if ([string]::IsNullOrWhiteSpace($patStr)) {
+                    $escaped = [regex]::Escape($label) -replace '\\ ', '(?:\s+|\.)'
+                    $patStr = "\b$escaped\b"
+                }
+            } else {
+                $label = $entry.Trim()
+                $escaped = [regex]::Escape($label) -replace '\\ ', '(?:\s+|\.)'
+                $patStr = "\b$escaped\b"
+            }
+
+            $nameB64 = ConvertTo-ReversedBase64 $label
+            $patB64 = ConvertTo-ReversedBase64 $patStr
+            $existingRules.Add(@{ NameB64 = $nameB64; PatB64 = $patB64 })
+            $added++
+            Write-Host "    + Added encoded rule (#$($existingRules.Count)) for '$label' -> NameB64='$nameB64'" -ForegroundColor Green
+        }
+
+        $more = Read-Host "  Add more keywords? [y/N - Press Enter to finish & save]"
+        if ([string]::IsNullOrWhiteSpace($more) -or ($more.Trim() -notmatch '^(y|yes)$')) {
+            break
+        }
     }
 
     if ($added -gt 0 -or (Test-Path -LiteralPath $libPath)) {
@@ -148,6 +279,55 @@ function Invoke-CustomScannerSetup ([string]$WorkspaceDir) {
         Write-Host "  [OK] Saved $($existingRules.Count) encoded rule(s) to $libPath (gitignored)." -ForegroundColor Green
     } else {
         Write-Host "  [SKIP] No custom keywords added." -ForegroundColor Gray
+    }
+}
+
+# Resolve Kit Root Directory (or bootstrap from GitHub if not cloned locally)
+$BootstrapDownloadedNow = $false
+$KitRoot = $PSScriptRoot
+if ($IsIex) {
+    $bootstrapTarget = if ($TargetWorkspaceDir) { $TargetWorkspaceDir } else { (Get-Location).Path }
+    if (-not (Test-KitFilesPresent $bootstrapTarget)) {
+        Install-PantheonKitFromGitHub -DestinationDir $bootstrapTarget
+        $BootstrapDownloadedNow = $true
+    }
+    $KitRoot = $bootstrapTarget
+} elseif (-not (Test-KitFilesPresent $KitRoot)) {
+    $cwd = (Get-Location).Path
+    $subDir = Join-Path $cwd "Antigravity_Governance_Setup_Kit"
+    if (Test-KitFilesPresent $cwd) {
+        $KitRoot = $cwd
+    } elseif (Test-KitFilesPresent $subDir) {
+        $KitRoot = $subDir
+    } else {
+        $bootstrapTarget = if ($TargetWorkspaceDir) { $TargetWorkspaceDir } else { $cwd }
+        Install-PantheonKitFromGitHub -DestinationDir $bootstrapTarget
+        $KitRoot = $bootstrapTarget
+        $BootstrapDownloadedNow = $true
+    }
+}
+
+Write-Host "Kit Root: $KitRoot`n" -ForegroundColor Gray
+
+# If bootstrapped directly into the workspace via irm | iex, initialize .env and offer optional scanner
+if ($BootstrapDownloadedNow -and -not $ValidateOnly) {
+    $destEnv = Join-Path $KitRoot ".env"
+    $destTpl = Join-Path $KitRoot ".env.template"
+    if ((Test-Path -LiteralPath $destTpl) -and (-not (Test-Path -LiteralPath $destEnv))) {
+        Copy-Item -LiteralPath $destTpl -Destination $destEnv
+        Write-Host "[BOOTSTRAP] Created initial .env from .env.template (populate credentials before running)." -ForegroundColor Green
+    }
+
+    if (-not $SkipCustomScanner -and -not $ConfigureCustomScanner -and [Environment]::UserInteractive) {
+        Write-Host "`n[OPTIONAL] Would you like to set up a custom organization/keyword leak scanner" -ForegroundColor Yellow
+        $ans = Read-Host "           to build a library of custom `$EncodedRules (.custom_blocklist.json)? [y/N - Press Enter to skip]"
+        if ($ans -match '^(y|yes)$') {
+            Invoke-CustomScannerSetup -WorkspaceDir $KitRoot
+            $SkipCustomScanner = $true
+        } else {
+            Write-Host "  [SKIP] Skipped custom keyword scanner setup (run with -ConfigureCustomScanner anytime)." -ForegroundColor Gray
+            $SkipCustomScanner = $true
+        }
     }
 }
 
@@ -187,32 +367,6 @@ $Issues = [System.Collections.Generic.List[string]]::new()
 
 # STAGE 1: File Existence and Byte Limit Check (24 canonical files)
 Write-Host "[STAGE 1/4] Checking canonical file structure and byte limits..." -ForegroundColor Yellow
-$RequiredFiles = @(
-    "README.md",
-    "ANTIGRAVITY_SETUP_GUIDE.md",
-    "ANTIGRAVITY_DOCS.html",
-    "GEMINI.md",
-    ".env.template",
-    ".gitignore",
-    "setup.py",
-    "build_docs.py",
-    "validate_kit.py",
-    "validate_and_install.ps1",
-    ".agents/agents/aegis_best_practice/agent.md",
-    ".agents/agents/atlas_architecture/agent.md",
-    ".agents/agents/sage_governance/agent.md",
-    ".agents/agents/sentinel_security/agent.md",
-    ".agents/agents/spark_disruptor/agent.md",
-    ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
-    ".agents/skills/productivity-workload-governance/SKILL.md",
-    ".agents/skills/quality-audit-governance/SKILL.md",
-    ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
-    ".agents/skills/teams-standup-digest-notifier/SKILL.md",
-    ".agents/skills/ticket-backlog-governance/SKILL.md",
-    "Governance_Framework/AEGIS_Agent_System_Prompt.md",
-    "Governance_Framework/SAGE_Agent_System_Prompt.md",
-    ".agents/rules/sage-governance-prompt.md"
-)
 
 foreach ($relPath in $RequiredFiles) {
     $fullPath = Join-Path $KitRoot $relPath
@@ -280,6 +434,7 @@ if (Test-Path -LiteralPath $agentsDir) {
 # STAGE 3: De-Identification & Secret Leak Scan
 Write-Host "`n[STAGE 3/4] Scanning for live credentials and custom blocklist leaks ($($GenericSecretRules.Count) built-in secret rules + $($EncodedRules.Count) local custom rule(s))..." -ForegroundColor Yellow
 $AllFiles = Get-ChildItem -Path $KitRoot -Recurse -File | Where-Object {
+    $_.Name -ne "setup.py" -and
     $_.Name -ne "validate_and_install.ps1" -and
     $_.Name -ne "validate_kit.py" -and
     $_.Name -ne $CustomBlocklistFileName -and
@@ -368,19 +523,19 @@ if ($Issues.Count -gt 0) {
         Write-Host "  - $iss" -ForegroundColor Red
     }
     Write-Host "======================================================================" -ForegroundColor Cyan
-    exit 1
+    if (-not $IsIex) { exit 1 } else { return }
 }
 
 Write-Host "ALL VALIDATION CHECKS PASSED! (Exit Code 0)" -ForegroundColor Green
 Write-Host "Status: OK - The kit is clean, fully de-identified, and structurally valid." -ForegroundColor Green
 
-# Installation / Bootstrap Phase
+# Installation / Bootstrap Phase into a separate TargetWorkspaceDir (when KitRoot != TargetWorkspaceDir)
 $isInstall = ($Install -or ($TargetWorkspaceDir -and -not $ValidateOnly))
 
-if ($isInstall) {
+if ($isInstall -and ($TargetWorkspaceDir -ne $KitRoot)) {
     if (-not $TargetWorkspaceDir) {
         Write-Host "Error: Target workspace directory must be specified for installation." -ForegroundColor Red
-        exit 1
+        if (-not $IsIex) { exit 1 } else { return }
     }
 
     Write-Host "`n======================================================================" -ForegroundColor Cyan
@@ -411,7 +566,7 @@ if ($isInstall) {
         $srcPath = Join-Path $KitRoot $item
         $dstPath = Join-Path $TargetWorkspaceDir $item
         if (Test-Path -LiteralPath $srcPath) {
-            if ($Force) {
+            if ($Force -or $IsIex) {
                 Copy-Item -Path $srcPath -Destination $dstPath -Recurse -Force
             } else {
                 Copy-Item -Path $srcPath -Destination $dstPath -Recurse
@@ -444,7 +599,20 @@ if ($isInstall) {
     Write-Host "  1. Open target workspace in Google Antigravity." -ForegroundColor Gray
     Write-Host "  2. Populate instance credentials in .env." -ForegroundColor Gray
     Write-Host "  3. Invoke AEGIS, ATLAS, SAGE, SENTINEL, or SPARK advisory agents." -ForegroundColor Gray
+} elseif ($BootstrapDownloadedNow -and -not $ValidateOnly) {
+    # If bootstrapped via irm | iex, also run setup.py if Python is installed on PATH
+    $pyCmd = Get-Command python -ErrorAction SilentlyContinue
+    $setupPyPath = Join-Path $KitRoot "setup.py"
+    if ($null -ne $pyCmd -and (Test-Path -LiteralPath $setupPyPath)) {
+        Write-Host "`n[PYTHON BOOTSTRAP] Running setup.py runtime check & HTML docs builder..." -ForegroundColor Cyan
+        & $pyCmd.Source $setupPyPath --target-dir $KitRoot --init-env --skip-custom-scanner --skip-validation
+    }
+    Write-Host "`nBootstrap & Installation Completed Successfully in: $KitRoot" -ForegroundColor Green
+    Write-Host "Next Steps:" -ForegroundColor Cyan
+    Write-Host "  1. Open '$KitRoot' in Google Antigravity." -ForegroundColor Gray
+    Write-Host "  2. Populate instance credentials in .env." -ForegroundColor Gray
+    Write-Host "  3. Invoke AEGIS, ATLAS, SAGE, SENTINEL, or SPARK advisory agents." -ForegroundColor Gray
 }
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-exit 0
+if (-not $IsIex) { exit 0 }
