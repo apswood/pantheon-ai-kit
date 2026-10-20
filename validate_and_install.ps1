@@ -134,6 +134,11 @@ function ConvertTo-ReversedBase64 ([string]$PlainText) {
     return [System.Convert]::ToBase64String($bytes)
 }
 
+function ConvertFrom-ReversedBase64 ([string]$EncodedText) {
+    $raw = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($EncodedText))
+    return (Reverse-String $raw)
+}
+
 function Ensure-GitignoreEntry ([string]$WorkspaceDir, [string]$EntryName) {
     $giFile = Join-Path $WorkspaceDir ".gitignore"
     if (Test-Path -LiteralPath $giFile) {
@@ -237,10 +242,32 @@ function Invoke-CustomScannerSetup ([string]$WorkspaceDir) {
     Write-Host "  CUSTOM KEYWORD LEAK SCANNER BUILDER (`$EncodedRules Library)" -ForegroundColor Cyan
     Write-Host "----------------------------------------------------------------------" -ForegroundColor Cyan
     Write-Host "  Currently loaded custom rules in ${CustomBlocklistFileName}: $($existingRules.Count)" -ForegroundColor Gray
+    if ($existingRules.Count -gt 0) {
+        $previewLabels = [System.Collections.Generic.List[string]]::new()
+        for ($idx = 0; $idx -lt $existingRules.Count; $idx++) {
+            try {
+                $decLbl = ConvertFrom-ReversedBase64 $existingRules[$idx].NameB64
+                $previewLabels.Add("#$($idx + 1) '$decLbl'")
+            } catch {
+                $previewLabels.Add("#$($idx + 1) <encoded>")
+            }
+        }
+        Write-Host "  Loaded Rules: $($previewLabels -join ', ')" -ForegroundColor DarkCyan
+        $clearAns = Read-Host "  Would you like to [K]eep existing rules or [C]lear/reset the list first? [K/c - Press Enter to keep]"
+        if (-not [string]::IsNullOrWhiteSpace($clearAns) -and ($clearAns.Trim() -match '^(c|clear|reset)$')) {
+            $existingRules.Clear()
+            if (Test-Path -LiteralPath $libPath) {
+                Remove-Item -LiteralPath $libPath -Force -ErrorAction SilentlyContinue
+            }
+            Write-Host "  [RESET] Cleared all previous custom rules from $CustomBlocklistFileName." -ForegroundColor Yellow
+        }
+    }
     Write-Host "  How to add organization-specific keywords:" -ForegroundColor Gray
     Write-Host "    * Enter a single keyword (e.g. <YourCompanyName>) OR multiple" -ForegroundColor Gray
     Write-Host "      comma-separated keywords on one line (e.g. <Company>, <internal.domain>)" -ForegroundColor Gray
     Write-Host "    * Optional custom regex: use 'Label::Regex' (e.g. CorpDomain::\bcorp\.local\b)" -ForegroundColor Gray
+    Write-Host "    * Tip: Avoid short common English words (like 'bad' or 'good'), which match" -ForegroundColor Gray
+    Write-Host "      inside normal words (such as 'badge' or 'Goodhart')." -ForegroundColor Gray
     Write-Host "    * To finish at any prompt: press [Enter] on an empty line or type 'done'" -ForegroundColor Yellow
     Write-Host "  All rules are Reversed UTF-8 + Base64 encoded and added to .gitignore.`n" -ForegroundColor Gray
 
@@ -282,9 +309,25 @@ function Invoke-CustomScannerSetup ([string]$WorkspaceDir) {
 
             $nameB64 = ConvertTo-ReversedBase64 $label
             $patB64 = ConvertTo-ReversedBase64 $patStr
+
+            $dupRuleIdx = -1
+            for ($k = 0; $k -lt $existingRules.Count; $k++) {
+                if ($existingRules[$k].NameB64 -eq $nameB64 -and $existingRules[$k].PatB64 -eq $patB64) {
+                    $dupRuleIdx = $k + 1
+                    break
+                }
+            }
+            if ($dupRuleIdx -gt 0) {
+                Write-Host "    [SKIP] '$label' is already in the list as Rule #$dupRuleIdx (skipped duplicate)." -ForegroundColor Yellow
+                continue
+            }
+
             $existingRules.Add(@{ NameB64 = $nameB64; PatB64 = $patB64 })
             $added++
             Write-Host "    + Added encoded rule (#$($existingRules.Count)) for '$label' -> NameB64='$nameB64'" -ForegroundColor Green
+            if ($label.Length -le 3 -and $entry -notmatch '::') {
+                Write-Host "      [TIP] '$label' is very short ($($label.Length) chars) and will also be checked as a substring (e.g. inside longer words)." -ForegroundColor DarkYellow
+            }
         }
 
         $more = Read-Host "  Add more keywords? [y/N - Press Enter to finish & save]"
@@ -293,13 +336,13 @@ function Invoke-CustomScannerSetup ([string]$WorkspaceDir) {
         }
     }
 
-    if ($added -gt 0 -or (Test-Path -LiteralPath $libPath)) {
+    if ($existingRules.Count -gt 0) {
         $jsonOut = ConvertTo-Json -InputObject @($existingRules) -Depth 4
         Set-Content -LiteralPath $libPath -Value $jsonOut -Encoding UTF8
         Ensure-GitignoreEntry -WorkspaceDir $WorkspaceDir -EntryName $CustomBlocklistFileName
         Write-Host "  [OK] Saved $($existingRules.Count) encoded rule(s) to $libPath (gitignored)." -ForegroundColor Green
     } else {
-        Write-Host "  [SKIP] No custom keywords added." -ForegroundColor Gray
+        Write-Host "  [SKIP] No custom keywords active." -ForegroundColor Gray
     }
 }
 
@@ -650,14 +693,33 @@ $AllFiles = Get-ChildItem -Path $KitRoot -Recurse -File | Where-Object {
 }
 
 $decodedRules = @()
-foreach ($r in $EncodedRules) {
-    $tokRaw = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($r.NameB64))
-    $patRaw = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($r.PatB64))
-    $tok = Reverse-String $tokRaw
-    $pat = Reverse-String $patRaw
-    $decodedRules += @{ Token = $tok; Pattern = $pat }
+for ($rIdx = 0; $rIdx -lt $EncodedRules.Count; $rIdx++) {
+    $r = $EncodedRules[$rIdx]
+    $tok = ConvertFrom-ReversedBase64 $r.NameB64
+    $pat = ConvertFrom-ReversedBase64 $r.PatB64
+    $dupOf = 0
+    for ($prevIdx = 0; $prevIdx -lt $decodedRules.Count; $prevIdx++) {
+        if ($decodedRules[$prevIdx].Token -eq $tok -and $decodedRules[$prevIdx].Pattern -eq $pat) {
+            $dupOf = $decodedRules[$prevIdx].RuleNum
+            break
+        }
+    }
+    $decodedRules += @{
+        RuleNum          = $rIdx + 1
+        Token            = $tok
+        Pattern          = $pat
+        DuplicateOf      = $dupOf
+        TotalMatches     = 0
+        WholeWordMatches = 0
+        SubstringMatches = 0
+        WholeWords       = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        SubstringWords   = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        MatchedFiles     = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    }
 }
 
+$genericLeakCount = 0
+$customLeakCount = 0
 $leakCount = 0
 foreach ($file in $AllFiles) {
     $lines = Get-Content -LiteralPath $file.FullName -Encoding UTF8 -ErrorAction SilentlyContinue
@@ -669,21 +731,41 @@ foreach ($file in $AllFiles) {
         foreach ($gRule in $GenericSecretRules) {
             if ($line -cmatch $gRule.Pattern) {
                 $leakCount++
+                $genericLeakCount++
                 $rel = $file.FullName.Substring($KitRoot.Length).TrimStart('\', '/')
                 $snippet = $line.Trim()
                 if ($snippet.Length -gt 80) { $snippet = $snippet.Substring(0, 80) }
-                $Issues.Add("LEAK: $rel : line $lineNum matched generic rule ($($gRule.Label)) -> $snippet")
+                $Issues.Add("LEAK [CRITICAL SECRET]: $rel : line $lineNum matched built-in rule '$($gRule.Label)' -> $snippet")
             }
         }
         for ($i = 0; $i -lt $decodedRules.Count; $i++) {
             $rule = $decodedRules[$i]
-            $hasMatch = $lineLower.Contains($rule.Token.ToLower()) -or ($line -match $rule.Pattern)
-            if ($hasMatch) {
+            $isRegexMatch = ($line -match $rule.Pattern)
+            $isSubMatch = (-not $isRegexMatch) -and $lineLower.Contains($rule.Token.ToLower())
+            if ($isRegexMatch -or $isSubMatch) {
                 $leakCount++
+                $customLeakCount++
+                $rule.TotalMatches++
                 $rel = $file.FullName.Substring($KitRoot.Length).TrimStart('\', '/')
+                [void]$rule.MatchedFiles.Add($rel)
                 $snippet = $line.Trim()
                 if ($snippet.Length -gt 80) { $snippet = $snippet.Substring(0, 80) }
-                $Issues.Add("LEAK: $rel : line $lineNum matched custom rule #$($i + 1) -> $snippet")
+
+                if ($isRegexMatch) {
+                    $rule.WholeWordMatches++
+                    $matchedVal = if ($Matches -and $Matches[0]) { $Matches[0] } else { $rule.Token }
+                    [void]$rule.WholeWords.Add($matchedVal)
+                    $Issues.Add("LEAK: $rel : line $lineNum matched custom rule #$($rule.RuleNum) ('$($rule.Token)' - whole-word/regex match '$matchedVal') -> $snippet")
+                } else {
+                    $rule.SubstringMatches++
+                    $enclosingWord = $rule.Token
+                    $escTok = [regex]::Escape($rule.Token)
+                    if ($line -match "([A-Za-z0-9_.-]*$escTok[A-Za-z0-9_.-]*)") {
+                        $enclosingWord = $Matches[1].Trim('.')
+                    }
+                    [void]$rule.SubstringWords.Add($enclosingWord)
+                    $Issues.Add("LEAK: $rel : line $lineNum matched custom rule #$($rule.RuleNum) ('$($rule.Token)' - substring inside '$enclosingWord') -> $snippet")
+                }
             }
         }
         $lineNum++
@@ -693,7 +775,7 @@ foreach ($file in $AllFiles) {
 if ($leakCount -eq 0) {
     Write-Host "  [PASS] Zero credential or blocklisted leaks detected across $($AllFiles.Count) files." -ForegroundColor Green
 } else {
-    Write-Host "  [FAIL] Detected $leakCount sensitive leak occurrence(s)." -ForegroundColor Red
+    Write-Host "  [FAIL] Detected $leakCount sensitive leak occurrence(s) ($genericLeakCount built-in secret, $customLeakCount custom keyword)." -ForegroundColor Red
 }
 
 # STAGE 4: Configuration Hygiene
@@ -725,12 +807,82 @@ if ($Issues.Count -gt 0) {
     foreach ($iss in $Issues) {
         Write-Host "  - $iss" -ForegroundColor Red
     }
+
+    if ($leakCount -gt 0 -or $decodedRules.Count -gt 0) {
+        Write-Host "`n----------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host "  VALIDATION MATCH SUMMARY - WHAT MATCHED, WHY & HOW SERIOUS IT IS" -ForegroundColor Yellow
+        Write-Host "----------------------------------------------------------------------" -ForegroundColor Yellow
+
+        # 1. Built-in Live Credential Summary
+        if ($genericLeakCount -eq 0) {
+            Write-Host "  [1] Built-In Live Credential & Secret Rules ($($GenericSecretRules.Count) rules):" -ForegroundColor Cyan
+            Write-Host "      * Status   : PASS (0 live private keys, API tokens, or OAuth secrets found)" -ForegroundColor Green
+            Write-Host "      * Severity : NONE (No actual credentials were leaked)" -ForegroundColor Gray
+        } else {
+            Write-Host "  [1] Built-In Live Credential & Secret Rules ($($GenericSecretRules.Count) rules):" -ForegroundColor Cyan
+            Write-Host "      * Status   : FAIL ($genericLeakCount live credential/secret match(es) detected)" -ForegroundColor Red
+            Write-Host "      * Severity : CRITICAL - Revoke/rotate exposed keys immediately and move to .env" -ForegroundColor Red
+        }
+
+        # 2. Custom Rules Breakdown
+        if ($decodedRules.Count -gt 0) {
+            Write-Host "`n  [2] Custom Keyword Rules Breakdown ($CustomBlocklistFileName - $($decodedRules.Count) rule(s)):" -ForegroundColor Cyan
+            $totalWholeWord = 0
+            $totalSubstring = 0
+            foreach ($r in $decodedRules) {
+                $totalWholeWord += $r.WholeWordMatches
+                $totalSubstring += $r.SubstringMatches
+                $dupNote = if ($r.DuplicateOf -gt 0) { " [Duplicate of Rule #$($r.DuplicateOf)]" } else { "" }
+                if ($r.TotalMatches -eq 0) {
+                    Write-Host "      * Custom Rule #$($r.RuleNum): Keyword '$($r.Token)' (Pattern: $($r.Pattern))$dupNote" -ForegroundColor Gray
+                    Write-Host "        - Matches : 0 occurrences" -ForegroundColor DarkGray
+                } else {
+                    $sampleSubWords = @($r.SubstringWords) | Select-Object -First 8
+                    $subWordListStr = ($sampleSubWords | ForEach-Object { "'$_'" }) -join ", "
+                    if ($r.SubstringWords.Count -gt 8) { $subWordListStr += ", ... (+$($r.SubstringWords.Count - 8) more)" }
+
+                    $sampleWholeWords = @($r.WholeWords) | Select-Object -First 6
+                    $wholeWordListStr = ($sampleWholeWords | ForEach-Object { "'$_'" }) -join ", "
+
+                    Write-Host "      * Custom Rule #$($r.RuleNum): Keyword '$($r.Token)' (Pattern: $($r.Pattern))$dupNote" -ForegroundColor Yellow
+                    Write-Host "        - Matches   : $($r.TotalMatches) occurrence(s) across $($r.MatchedFiles.Count) file(s) ($($r.WholeWordMatches) whole-word, $($r.SubstringMatches) partial substring)" -ForegroundColor Gray
+                    if ($r.SubstringMatches -gt 0 -and $r.WholeWordMatches -eq 0) {
+                        Write-Host "        - Why       : Matched case-insensitive substring '$($r.Token)' inside longer word(s): $subWordListStr" -ForegroundColor Gray
+                        Write-Host "        - Severity  : LOW (Likely False Positive - short/common word matched inside normal code/docs words)" -ForegroundColor Green
+                    } elseif ($r.SubstringMatches -gt 0 -and $r.WholeWordMatches -gt 0) {
+                        Write-Host "        - Why       : Matched whole word '$($r.Token)' ($($r.WholeWordMatches)x) AND substring inside longer word(s) ($($r.SubstringMatches)x): $subWordListStr" -ForegroundColor Gray
+                        Write-Host "        - Severity  : LOW / REVIEW (Mostly partial substring matches inside words like $subWordListStr; review if '$($r.Token)' is a confidential org name)" -ForegroundColor Yellow
+                    } else {
+                        Write-Host "        - Why       : Matched whole-word / regex pattern $($r.Pattern) for token(s): $wholeWordListStr" -ForegroundColor Gray
+                        Write-Host "        - Severity  : MEDIUM / REVIEW (Exact match for your custom keyword; replace with a placeholder if it is a private org/domain name)" -ForegroundColor Yellow
+                    }
+                }
+            }
+
+            Write-Host "`n  [3] Overall Severity & Next Steps:" -ForegroundColor Cyan
+            if ($genericLeakCount -eq 0 -and $totalSubstring -gt 0) {
+                Write-Host "      * Good news: 0 real credentials or API keys were detected." -ForegroundColor Green
+                Write-Host "      * $totalSubstring of $customLeakCount custom match(es) are partial substring matches (e.g. 'bad' matching inside 'badge' or 'good' inside 'Goodhart')." -ForegroundColor Gray
+                Write-Host "      * If you entered test words during setup, clear or reconfigure your custom rules with:" -ForegroundColor Gray
+            } else {
+                Write-Host "      * To update, clear, or reconfigure your custom keyword list, run:" -ForegroundColor Gray
+            }
+            Write-Host "          Remove-Item `"$LocalBlocklistPath`" -Force -ErrorAction SilentlyContinue" -ForegroundColor White
+            Write-Host "          pwsh -NoProfile -File .\validate_and_install.ps1 -ValidateOnly" -ForegroundColor White
+            Write-Host "        Or open the interactive custom rule builder (and choose [C]lear):" -ForegroundColor Gray
+            Write-Host "          pwsh -NoProfile -File .\validate_and_install.ps1 -ConfigureCustomScanner" -ForegroundColor White
+        }
+    }
     Write-Host "======================================================================" -ForegroundColor Cyan
     if (-not $IsIex) { exit 1 } else { return }
 }
 
 Write-Host "ALL VALIDATION CHECKS PASSED! (Exit Code 0)" -ForegroundColor Green
 Write-Host "Status: OK - The kit is clean, fully de-identified, and structurally valid." -ForegroundColor Green
+if ($decodedRules.Count -gt 0) {
+    $ruleLabels = ($decodedRules | ForEach-Object { "#$($_.RuleNum) '$($_.Token)'" }) -join ", "
+    Write-Host "Custom Rules Verified ($($decodedRules.Count)): $ruleLabels (0 matches)" -ForegroundColor Gray
+}
 
 # Installation / Bootstrap Phase into a separate TargetWorkspaceDir (when KitRoot != TargetWorkspaceDir)
 $isInstall = ($Install -or ($TargetWorkspaceDir -and -not $ValidateOnly))

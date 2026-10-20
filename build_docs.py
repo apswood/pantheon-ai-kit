@@ -3,7 +3,7 @@
 
 Compiles all Markdown documentation, templates, specialist agent personas,
 and governance skills in the Antigravity Governance Setup Kit into a single,
-self-contained, offline-ready HTML5 Local Docs portal (`ANTIGRAVITY_DOCS.html`).
+self-contained, offline-ready, mobile-responsive HTML5 Local Docs portal (`ANTIGRAVITY_DOCS.html`).
 
 Why this Hybrid Architecture?
 1. Works over `file://` via double-click in any browser (avoids browser CORS blocks
@@ -24,22 +24,22 @@ from typing import Any, Dict, List, Tuple
 
 DOCS_MANIFEST: List[Dict[str, str]] = [
     {
-        "id": "setup-guide",
-        "title": "Antigravity Setup & Hygiene Guide",
-        "short_title": "Setup & Hygiene Guide",
-        "category": "Onboarding & Guides",
-        "badge": "Primary Manual",
-        "path": "ANTIGRAVITY_SETUP_GUIDE.md",
-        "description": "Complete architecture, software engineering hygiene (.env, .venv, AST linting, pure vs. I/O), language selection (Python vs. PowerShell), and KPI customization manual.",
-    },
-    {
         "id": "readme",
         "title": "Quickstart & Kit Overview (README)",
         "short_title": "Quickstart & Overview",
         "category": "Onboarding & Guides",
         "badge": "Quickstart",
         "path": "README.md",
-        "description": "Executive summary, 5-minute bootstrap instructions, directory layout, specialist agent roster, and KPI formula quick-reference.",
+        "description": "Concise executive summary, 1-command bootstrap instructions, specialist agent & skill tables, and deep-dive guide links.",
+    },
+    {
+        "id": "setup-guide",
+        "title": "Antigravity Setup & Hygiene Guide",
+        "short_title": "Setup & Hygiene Guide",
+        "category": "Onboarding & Guides",
+        "badge": "Primary Manual",
+        "path": "ANTIGRAVITY_SETUP_GUIDE.md",
+        "description": "Complete architecture, grounding frameworks, software engineering hygiene (.env, .venv, AST linting, pure vs. I/O), language selection (Python vs. PowerShell), and KPI customization manual.",
     },
     {
         "id": "gemini-md",
@@ -138,7 +138,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "category": "Operational & KPI Skills",
         "badge": "Skill Runbook",
         "path": ".agents/skills/ticket-backlog-governance/SKILL.md",
-        "description": "Business-hours staleness engine, 5-tier age bucketing, and 4-criterion 40-point backlog prioritization rubric.",
+        "description": "Business-hours staleness engine, 5-tier age bucketing, and 4-criterion 145-point backlog prioritization rubric.",
     },
     {
         "id": "skill-productivity",
@@ -147,7 +147,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "category": "Operational & KPI Skills",
         "badge": "Skill Runbook",
         "path": ".agents/skills/productivity-workload-governance/SKILL.md",
-        "description": "80% weekly utilization pacing target, dynamic FTE capacity normalization, and automated event isolation.",
+        "description": "315-minute daily time target, 80% weekly utilization ceiling, dynamic FTE capacity normalization, and automated event isolation.",
     },
     {
         "id": "skill-quality",
@@ -225,7 +225,7 @@ def slugify(text: str) -> str:
     return re.sub(r"[\s_-]+", "-", clean) or "section"
 
 
-def render_inline(text: str) -> str:
+def render_inline(text: str, page_id: str = "") -> str:
     """Convert inline Markdown (code spans, links, bold, italic) to safe HTML."""
     code_tokens: List[str] = []
 
@@ -242,9 +242,51 @@ def render_inline(text: str) -> str:
     def _render_link(match: re.Match) -> str:
         label = match.group(1)
         url = html.unescape(match.group(2)).strip()
+
+        # 1. Links pointing to GitHub Pages portal hash (https://apswood.github.io/pantheon-ai-kit/#...)
+        gh_pages_prefix = "https://apswood.github.io/pantheon-ai-kit/#"
+        if url.startswith(gh_pages_prefix):
+            hash_target = url[len(gh_pages_prefix) :].strip()
+            if hash_target:
+                return (
+                    f'<a href="#{html.escape(hash_target)}" class="docs-internal-link" '
+                    f'onclick="navigateToHash(\'{html.escape(hash_target)}\'); return false;">{label}</a>'
+                )
+
+        # 2. Same-page anchor links (#section-slug)
+        if url.startswith("#") and len(url) > 1:
+            raw_anchor = url[1:]
+            # Check if raw_anchor is already a page ID or prefixed with a page ID
+            is_known_prefix = any(
+                raw_anchor == m["id"] or raw_anchor.startswith(m["id"] + "-")
+                for m in DOCS_MANIFEST
+            )
+            full_anchor = raw_anchor if is_known_prefix or not page_id else f"{page_id}-{slugify(raw_anchor)}"
+            return (
+                f'<a href="#{html.escape(full_anchor)}" class="docs-internal-link" '
+                f'onclick="navigateToHash(\'{html.escape(full_anchor)}\'); return false;">{label}</a>'
+            )
+
+        # 3. Relative file links with or without #anchor (e.g., ANTIGRAVITY_SETUP_GUIDE.md#67-...)
+        file_part, sep, anchor_part = url.partition("#")
+        clean_file = file_part.lstrip("./")
         for item in DOCS_MANIFEST:
-            if url.endswith(item["path"]) or url == item["path"] or url == f"./{item['path']}":
-                return f'<a href="#{item["id"]}" class="docs-internal-link" onclick="navigateToPage(\'{item["id"]}\'); return false;">{label}</a>'
+            if clean_file == item["path"] or file_part.endswith("/" + item["path"]):
+                if sep and anchor_part:
+                    target_hash = (
+                        anchor_part
+                        if anchor_part.startswith(item["id"] + "-")
+                        else f"{item['id']}-{slugify(anchor_part)}"
+                    )
+                    return (
+                        f'<a href="#{html.escape(target_hash)}" class="docs-internal-link" '
+                        f'onclick="navigateToPage(\'{item["id"]}\', \'{html.escape(target_hash)}\'); return false;">{label}</a>'
+                    )
+                return (
+                    f'<a href="#{item["id"]}" class="docs-internal-link" '
+                    f'onclick="navigateToPage(\'{item["id"]}\'); return false;">{label}</a>'
+                )
+
         target = ' target="_blank" rel="noopener noreferrer"' if url.startswith("http") else ""
         return f'<a href="{html.escape(url)}"{target}>{label}</a>'
 
@@ -324,7 +366,7 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
             count = used_slugs.get(base_slug, 0)
             used_slugs[base_slug] = count + 1
             slug = f"{base_slug}-{count}" if count > 0 else base_slug
-            rendered_title = render_inline(raw_title)
+            rendered_title = render_inline(raw_title, page_id)
             clean_title = re.sub(r"<[^>]+>", "", rendered_title)
 
             if level in (2, 3):
@@ -332,7 +374,7 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
 
             out.append(
                 f'<h{level} id="{slug}" class="doc-heading doc-h{level}">'
-                f'{rendered_title}'
+                f"{rendered_title}"
                 f'<a class="heading-anchor" href="#{slug}" title="Link to this section">#</a>'
                 f"</h{level}>"
             )
@@ -351,13 +393,13 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
 
             table_html = ['<div class="table-responsive"><table class="docs-table"><thead><tr>']
             for cell in header_cells:
-                table_html.append(f"<th>{render_inline(cell)}</th>")
+                table_html.append(f"<th>{render_inline(cell, page_id)}</th>")
             table_html.append("</tr></thead><tbody>")
             for row in body_rows:
                 table_html.append("<tr>")
                 for idx_c in range(len(header_cells)):
                     val = row[idx_c] if idx_c < len(row) else ""
-                    table_html.append(f"<td>{render_inline(val)}</td>")
+                    table_html.append(f"<td>{render_inline(val, page_id)}</td>")
                 table_html.append("</tr>")
             table_html.append("</tbody></table></div>")
             out.append("".join(table_html))
@@ -377,7 +419,7 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
                 alert_type = alert_match.group(1).upper()
                 remainder_first = alert_match.group(2).strip()
                 alert_body_lines = ([remainder_first] if remainder_first else []) + quote_lines[1:]
-                body_rendered = "<br/>".join(render_inline(x) for x in alert_body_lines if x.strip())
+                body_rendered = "<br/>".join(render_inline(x, page_id) for x in alert_body_lines if x.strip())
                 out.append(
                     f'<div class="callout callout-{alert_type.lower()}">'
                     f'<div class="callout-title">{alert_type}</div>'
@@ -385,7 +427,7 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
                     f"</div>"
                 )
             else:
-                body_rendered = "<br/>".join(render_inline(x) for x in quote_lines if x.strip())
+                body_rendered = "<br/>".join(render_inline(x, page_id) for x in quote_lines if x.strip())
                 out.append(f'<blockquote class="docs-quote">{body_rendered}</blockquote>')
             continue
 
@@ -407,7 +449,7 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
                 m = re.match(r"^(\s*)([-*+]|\d+\.)\s+(.+)$", curr)
                 if m:
                     indent = len(m.group(1))
-                    item_content = render_inline(m.group(3).strip())
+                    item_content = render_inline(m.group(3).strip(), page_id)
                     sub_class = ' class="nested-list-item"' if indent >= 2 else ""
                     items_html.append(f"<li{sub_class}>{item_content}")
                     i += 1
@@ -420,7 +462,7 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
                         if next_line.strip().startswith("```"):
                             break
                         if next_line.startswith("  ") or next_line.startswith("\t"):
-                            items_html.append(f"<br/>{render_inline(next_line.strip())}")
+                            items_html.append(f"<br/>{render_inline(next_line.strip(), page_id)}")
                             i += 1
                         else:
                             break
@@ -449,7 +491,7 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
                 or ("|" in curr_s and i + 1 < n and re.match(r"^\s*\|?[\s:|-]+\|[\s:|-]*$", lines[i + 1]))
             ):
                 break
-            para_lines.append(render_inline(curr_s))
+            para_lines.append(render_inline(curr_s, page_id))
             i += 1
 
         if para_lines:
@@ -521,11 +563,12 @@ def build_docs_html(kit_dir: Path) -> Path:
     for p in pages_data:
         categories.setdefault(p["category"], []).append(p)
 
+    default_page_id = "readme"
     sidebar_nav_html: List[str] = []
     for cat_name, items in categories.items():
         sidebar_nav_html.append(f'<div class="nav-category"><div class="nav-category-title">{html.escape(cat_name)}</div>')
         for item in items:
-            active_cls = " active" if item["id"] == "setup-guide" else ""
+            active_cls = " active" if item["id"] == default_page_id else ""
             sidebar_nav_html.append(
                 f'<button type="button" class="nav-item{active_cls}" id="nav-{item["id"]}" '
                 f'onclick="navigateToPage(\'{item["id"]}\')">'
@@ -538,7 +581,7 @@ def build_docs_html(kit_dir: Path) -> Path:
     # Build pre-rendered <article> panels so page content works even if JS is restricted
     articles_html: List[str] = []
     for p in pages_data:
-        hidden_cls = "" if p["id"] == "setup-guide" else " hidden"
+        hidden_cls = "" if p["id"] == default_page_id else " hidden"
         kb_size = f"{p['byte_size'] / 1024:.1f} KB"
         articles_html.append(
             f'<article class="docs-article{hidden_cls}" id="page-{p["id"]}" data-page-id="{p["id"]}">'
@@ -630,6 +673,11 @@ def build_docs_html(kit_dir: Path) -> Path:
       padding: 0;
     }}
 
+    html, body {{
+      overflow-x: clip;
+      max-width: 100%;
+    }}
+
     body {{
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg-primary);
@@ -645,47 +693,74 @@ def build_docs_html(kit_dir: Path) -> Path:
     .top-navbar {{
       position: sticky;
       top: 0;
-      z-index: 100;
-      height: 60px;
+      z-index: 150;
+      min-height: 60px;
       background-color: var(--bg-secondary);
       border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
-      gap: 16px;
+      padding: 8px 20px;
+      gap: 12px;
+      flex-wrap: wrap;
     }}
 
     .brand-group {{
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }}
+
+    .mobile-menu-btn {{
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }}
+
+    .mobile-menu-btn:hover {{
+      border-color: var(--accent-primary);
     }}
 
     .brand-badge {{
       background: linear-gradient(135deg, #238636, #1f6feb);
       color: #ffffff;
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11.5px;
       letter-spacing: 0.6px;
-      padding: 4px 10px;
+      padding: 4px 9px;
       border-radius: 6px;
       text-transform: uppercase;
+      flex-shrink: 0;
     }}
 
     .brand-title {{
-      font-size: 16px;
+      font-size: 15.5px;
       font-weight: 600;
       color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }}
 
     .brand-subtitle {{
       font-size: 12px;
       color: var(--text-secondary);
       display: none;
+      white-space: nowrap;
     }}
 
-    @media (min-width: 1100px) {{
+    @media (min-width: 1240px) {{
       .brand-subtitle {{
         display: inline;
       }}
@@ -694,12 +769,13 @@ def build_docs_html(kit_dir: Path) -> Path:
     .header-controls {{
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      flex-shrink: 0;
     }}
 
     .search-wrapper {{
       position: relative;
-      width: 320px;
+      width: clamp(190px, 26vw, 320px);
     }}
 
     .search-input {{
@@ -730,17 +806,17 @@ def build_docs_html(kit_dir: Path) -> Path:
 
     .search-results-dropdown {{
       position: absolute;
-      top: 42px;
+      top: calc(100% + 6px);
       right: 0;
-      width: 460px;
-      max-height: 440px;
+      width: min(460px, calc(100vw - 24px));
+      max-height: min(440px, 68vh);
       overflow-y: auto;
       background-color: var(--bg-elevated);
       border: 1px solid var(--border-color);
       border-radius: 8px;
       box-shadow: var(--shadow-lg);
       display: none;
-      z-index: 200;
+      z-index: 250;
     }}
 
     .search-results-dropdown.open {{
@@ -768,16 +844,18 @@ def build_docs_html(kit_dir: Path) -> Path:
       font-weight: 600;
       color: var(--accent-primary);
       margin-bottom: 2px;
+      overflow-wrap: break-word;
     }}
 
     .search-hit-snippet {{
       font-size: 12px;
       color: var(--text-secondary);
       line-height: 1.4;
+      overflow-wrap: break-word;
     }}
 
     .theme-btn {{
-      padding: 6px 12px;
+      padding: 6px 11px;
       border-radius: 6px;
       border: 1px solid var(--border-color);
       background-color: var(--bg-tertiary);
@@ -785,10 +863,26 @@ def build_docs_html(kit_dir: Path) -> Path:
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
     }}
 
     .theme-btn:hover {{
       border-color: var(--accent-primary);
+    }}
+
+    /* Mobile Backdrop Overlay for Drawer */
+    .sidebar-backdrop {{
+      display: none;
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.55);
+      z-index: 290;
+      backdrop-filter: blur(2px);
+    }}
+
+    .sidebar-backdrop.open {{
+      display: block;
     }}
 
     /* 3-Column Docs Layout */
@@ -801,25 +895,6 @@ def build_docs_html(kit_dir: Path) -> Path:
       margin: 0 auto;
     }}
 
-    @media (max-width: 1200px) {{
-      .docs-layout {{
-        grid-template-columns: 260px minmax(0, 1fr);
-      }}
-      .toc-sidebar {{
-        display: none;
-      }}
-    }}
-
-    @media (max-width: 820px) {{
-      .docs-layout {{
-        grid-template-columns: 1fr;
-      }}
-      .left-sidebar {{
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-      }}
-    }}
-
     /* Left Navigation Sidebar */
     .left-sidebar {{
       background-color: var(--bg-secondary);
@@ -829,6 +904,34 @@ def build_docs_html(kit_dir: Path) -> Path:
       position: sticky;
       top: 60px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }}
+
+    .mobile-sidebar-header {{
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px 14px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border-color);
+    }}
+
+    .mobile-sidebar-title {{
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }}
+
+    .mobile-sidebar-close {{
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 12px;
+      cursor: pointer;
     }}
 
     .nav-category {{
@@ -874,6 +977,12 @@ def build_docs_html(kit_dir: Path) -> Path:
       font-weight: 600;
     }}
 
+    .nav-item-title {{
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }}
+
     .nav-item-badge {{
       font-size: 10px;
       padding: 2px 6px;
@@ -881,6 +990,7 @@ def build_docs_html(kit_dir: Path) -> Path:
       background-color: var(--bg-tertiary);
       color: var(--text-muted);
       white-space: nowrap;
+      flex-shrink: 0;
     }}
 
     .nav-item.active .nav-item-badge {{
@@ -888,16 +998,56 @@ def build_docs_html(kit_dir: Path) -> Path:
       color: #ffffff;
     }}
 
-    /* Center Content Area */
-    .content-pane {{
-      padding: 36px 48px 80px;
-      min-width: 0;
+    /* Mobile / Tablet Collapsible On-This-Page TOC */
+    .mobile-toc {{
+      display: none;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
     }}
 
-    @media (max-width: 768px) {{
-      .content-pane {{
-        padding: 24px 18px 60px;
-      }}
+    .mobile-toc summary {{
+      padding: 10px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--accent-primary);
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }}
+
+    .mobile-toc summary::-webkit-details-marker {{
+      display: none;
+    }}
+
+    .mobile-toc summary::after {{
+      content: "▾";
+      font-size: 12px;
+      color: var(--text-secondary);
+      transition: transform 0.15s ease;
+    }}
+
+    .mobile-toc[open] summary::after {{
+      transform: rotate(180deg);
+    }}
+
+    .mobile-toc-body {{
+      padding: 8px 14px 12px;
+      border-top: 1px solid var(--border-subtle);
+      max-height: 48vh;
+      overflow-y: auto;
+    }}
+
+    /* Center Content Area */
+    .content-pane {{
+      padding: 34px 44px 80px;
+      min-width: 0;
+      max-width: 100%;
     }}
 
     .docs-article.hidden {{
@@ -909,7 +1059,7 @@ def build_docs_html(kit_dir: Path) -> Path:
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
       padding-bottom: 14px;
       margin-bottom: 16px;
       border-bottom: 1px solid var(--border-color);
@@ -918,8 +1068,10 @@ def build_docs_html(kit_dir: Path) -> Path:
     .meta-breadcrumbs {{
       display: flex;
       align-items: center;
-      gap: 8px;
+      flex-wrap: wrap;
+      gap: 6px;
       font-size: 13px;
+      min-width: 0;
     }}
 
     .meta-cat {{
@@ -939,11 +1091,13 @@ def build_docs_html(kit_dir: Path) -> Path:
       font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
       font-size: 12px;
       color: var(--text-secondary);
+      word-break: break-all;
     }}
 
     .meta-stats {{
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      flex-wrap: wrap;
     }}
 
     .stat-pill {{
@@ -953,6 +1107,7 @@ def build_docs_html(kit_dir: Path) -> Path:
       background-color: var(--bg-secondary);
       border: 1px solid var(--border-color);
       color: var(--text-secondary);
+      white-space: nowrap;
     }}
 
     .article-lead {{
@@ -963,6 +1118,7 @@ def build_docs_html(kit_dir: Path) -> Path:
       padding: 10px 14px;
       border-radius: 0 6px 6px 0;
       margin-bottom: 24px;
+      overflow-wrap: break-word;
     }}
 
     /* YAML Frontmatter Card */
@@ -988,6 +1144,8 @@ def build_docs_html(kit_dir: Path) -> Path:
     .frontmatter-body {{
       padding: 12px 14px;
       font-size: 13px;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }}
 
     .fm-item {{
@@ -1009,26 +1167,27 @@ def build_docs_html(kit_dir: Path) -> Path:
       color: var(--text-primary);
       font-weight: 600;
       line-height: 1.3;
-      scroll-margin-top: 78px;
+      scroll-margin-top: 86px;
+      overflow-wrap: break-word;
     }}
 
     .doc-h1 {{
-      font-size: 28px;
+      font-size: 26px;
       margin: 8px 0 18px;
       padding-bottom: 10px;
       border-bottom: 1px solid var(--border-color);
     }}
 
     .doc-h2 {{
-      font-size: 21px;
-      margin: 34px 0 14px;
+      font-size: 20px;
+      margin: 32px 0 14px;
       padding-bottom: 8px;
       border-bottom: 1px solid var(--border-subtle);
     }}
 
     .doc-h3 {{
-      font-size: 17px;
-      margin: 24px 0 10px;
+      font-size: 16.5px;
+      margin: 22px 0 10px;
       color: var(--accent-hover);
     }}
 
@@ -1053,18 +1212,22 @@ def build_docs_html(kit_dir: Path) -> Path:
     .docs-para {{
       margin-bottom: 14px;
       color: var(--text-primary);
+      overflow-wrap: break-word;
+      word-break: break-word;
     }}
 
     .docs-list {{
-      margin: 0 0 16px 24px;
+      margin: 0 0 16px 22px;
     }}
 
     .docs-list li {{
       margin-bottom: 6px;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }}
 
     .docs-list li.nested-list-item {{
-      margin-left: 20px;
+      margin-left: 18px;
       list-style-type: circle;
     }}
 
@@ -1077,6 +1240,7 @@ def build_docs_html(kit_dir: Path) -> Path:
     a {{
       color: var(--accent-primary);
       text-decoration: none;
+      overflow-wrap: break-word;
     }}
 
     a:hover {{
@@ -1089,6 +1253,8 @@ def build_docs_html(kit_dir: Path) -> Path:
       background-color: var(--inline-code-bg);
       padding: 2px 6px;
       border-radius: 4px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }}
 
     /* Code Blocks */
@@ -1098,6 +1264,7 @@ def build_docs_html(kit_dir: Path) -> Path:
       border-radius: 8px;
       overflow: hidden;
       background-color: var(--code-bg);
+      max-width: 100%;
     }}
 
     .code-block-header {{
@@ -1134,15 +1301,23 @@ def build_docs_html(kit_dir: Path) -> Path:
     .code-pre {{
       padding: 14px 16px;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      white-space: pre;
+      word-wrap: normal;
+      overflow-wrap: normal;
       font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
       font-size: 13px;
       line-height: 1.5;
       color: var(--text-primary);
+      max-width: 100%;
     }}
 
     /* Tables */
     .table-responsive {{
+      width: 100%;
+      max-width: 100%;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       margin: 16px 0 24px;
       border: 1px solid var(--border-color);
       border-radius: 8px;
@@ -1150,6 +1325,7 @@ def build_docs_html(kit_dir: Path) -> Path:
 
     .docs-table {{
       width: 100%;
+      min-width: 520px;
       border-collapse: collapse;
       font-size: 13.5px;
     }}
@@ -1167,6 +1343,7 @@ def build_docs_html(kit_dir: Path) -> Path:
       padding: 9px 14px;
       border-bottom: 1px solid var(--border-subtle);
       vertical-align: top;
+      overflow-wrap: break-word;
     }}
 
     .docs-table tr:last-child td {{
@@ -1185,6 +1362,7 @@ def build_docs_html(kit_dir: Path) -> Path:
       background-color: var(--bg-secondary);
       color: var(--text-secondary);
       border-radius: 0 6px 6px 0;
+      overflow-wrap: break-word;
     }}
 
     .callout {{
@@ -1193,6 +1371,7 @@ def build_docs_html(kit_dir: Path) -> Path:
       border-left: 4px solid var(--accent-primary);
       background-color: var(--bg-secondary);
       border-radius: 0 8px 8px 0;
+      overflow-wrap: break-word;
     }}
 
     .callout-title {{
@@ -1251,6 +1430,7 @@ def build_docs_html(kit_dir: Path) -> Path:
       border-left: 2px solid var(--border-subtle);
       text-decoration: none;
       line-height: 1.35;
+      overflow-wrap: break-word;
     }}
 
     .toc-link:hover {{
@@ -1275,8 +1455,104 @@ def build_docs_html(kit_dir: Path) -> Path:
       gap: 8px;
     }}
 
+    /* Responsive Breakpoints */
+    @media (max-width: 1240px) {{
+      .docs-layout {{
+        grid-template-columns: 260px minmax(0, 1fr);
+      }}
+      .toc-sidebar {{
+        display: none;
+      }}
+      .mobile-toc {{
+        display: block;
+      }}
+    }}
+
+    @media (max-width: 960px) {{
+      .mobile-menu-btn {{
+        display: inline-flex;
+      }}
+      .docs-layout {{
+        grid-template-columns: minmax(0, 1fr);
+      }}
+      .left-sidebar {{
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(310px, 86vw);
+        height: 100vh;
+        z-index: 300;
+        transform: translateX(-105%);
+        transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-lg);
+      }}
+      .left-sidebar.open {{
+        transform: translateX(0);
+      }}
+      .mobile-sidebar-header {{
+        display: flex;
+      }}
+      .content-pane {{
+        padding: 24px 22px 64px;
+      }}
+    }}
+
+    @media (max-width: 680px) {{
+      .top-navbar {{
+        padding: 8px 12px;
+        gap: 8px;
+      }}
+      .brand-title {{
+        font-size: 14px;
+      }}
+      .header-controls {{
+        width: 100%;
+        order: 3;
+      }}
+      .search-wrapper {{
+        flex: 1 1 auto;
+        width: 100%;
+      }}
+      .search-results-dropdown {{
+        left: 0;
+        right: 0;
+        width: 100%;
+      }}
+      .content-pane {{
+        padding: 16px 14px 48px;
+      }}
+      .doc-heading {{
+        scroll-margin-top: 112px;
+      }}
+      .doc-h1 {{
+        font-size: 21px;
+        margin: 4px 0 14px;
+      }}
+      .doc-h2 {{
+        font-size: 17.5px;
+        margin: 24px 0 10px;
+      }}
+      .doc-h3 {{
+        font-size: 15px;
+      }}
+      body {{
+        font-size: 14.5px;
+      }}
+      .code-pre {{
+        font-size: 12px;
+        padding: 10px 12px;
+      }}
+      .docs-table {{
+        font-size: 12.5px;
+      }}
+      .docs-table th, .docs-table td {{
+        padding: 8px 10px;
+      }}
+    }}
+
     @media print {{
-      .top-navbar, .left-sidebar, .toc-sidebar, .copy-btn {{
+      .top-navbar, .left-sidebar, .toc-sidebar, .mobile-toc, .sidebar-backdrop, .copy-btn {{
         display: none !important;
       }}
       .docs-layout {{
@@ -1291,10 +1567,16 @@ def build_docs_html(kit_dir: Path) -> Path:
 <body>
   <header class="top-navbar">
     <div class="brand-group">
+      <button type="button" class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle documentation menu">
+        &#9776; <span>Docs</span>
+      </button>
       <span class="brand-badge">PANTHEON AI</span>
-      <span class="brand-title">Agent &amp; Skills Setup Kit for Service Governance</span>
-      <span class="brand-subtitle">— Offline Local Documentation Portal ({total_docs} Compiled Modules)</span>
+      <span class="brand-title">Service Governance &amp; Hardening Kit</span>
+      <span class="brand-subtitle">— Offline Local Documentation Portal ({total_docs} Modules)</span>
     </div>
+    <button type="button" class="theme-btn" id="theme-toggle-btn" onclick="toggleTheme()">
+      Light / Dark
+    </button>
     <div class="header-controls">
       <div class="search-wrapper">
         <span class="search-icon">&#128269;</span>
@@ -1307,18 +1589,25 @@ def build_docs_html(kit_dir: Path) -> Path:
         />
         <div id="search-results" class="search-results-dropdown"></div>
       </div>
-      <button type="button" class="theme-btn" id="theme-toggle-btn" onclick="toggleTheme()">
-        Light / Dark
-      </button>
     </div>
   </header>
 
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
   <div class="docs-layout">
-    <aside class="left-sidebar" aria-label="Documentation Navigation">
+    <aside class="left-sidebar" id="left-sidebar" aria-label="Documentation Navigation">
+      <div class="mobile-sidebar-header">
+        <span class="mobile-sidebar-title">Documentation ({total_docs})</span>
+        <button type="button" class="mobile-sidebar-close" onclick="closeMobileSidebar()">&#10005; Close</button>
+      </div>
       {"".join(sidebar_nav_html)}
     </aside>
 
     <main class="content-pane" id="main-content">
+      <details class="mobile-toc" id="mobile-toc-details">
+        <summary>On This Page (Section Jump)</summary>
+        <nav class="mobile-toc-body" id="mobile-toc-container"></nav>
+      </details>
       {"".join(articles_html)}
       <footer class="docs-footer">
         <span>PANTHEON AI Agent and Skills Setup Kit for Service Governance (ITIL 4 &amp; ITIL 5, NIST, NCSC / Cyber Essentials Plus, UKFS-01..06)</span>
@@ -1334,26 +1623,55 @@ def build_docs_html(kit_dir: Path) -> Path:
 
   <script>
     const DOCS_INDEX = {index_json};
-    let currentPageId = "setup-guide";
+    let currentPageId = "{default_page_id}";
+
+    function toggleMobileSidebar() {{
+      const sb = document.getElementById("left-sidebar");
+      const bd = document.getElementById("sidebar-backdrop");
+      if (!sb || !bd) return;
+      const isOpen = sb.classList.toggle("open");
+      bd.classList.toggle("open", isOpen);
+    }}
+
+    function closeMobileSidebar() {{
+      const sb = document.getElementById("left-sidebar");
+      const bd = document.getElementById("sidebar-backdrop");
+      if (sb) sb.classList.remove("open");
+      if (bd) bd.classList.remove("open");
+    }}
 
     function renderToc(pageId) {{
       const tocContainer = document.getElementById("toc-container");
-      if (!tocContainer) return;
+      const mobileTocContainer = document.getElementById("mobile-toc-container");
+      const mobileTocDetails = document.getElementById("mobile-toc-details");
       const pageObj = DOCS_INDEX.find(p => p.id === pageId);
       if (!pageObj || !pageObj.toc || pageObj.toc.length === 0) {{
-        tocContainer.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">No subsections</span>';
+        const emptyHtml = '<span style="font-size:12px;color:var(--text-muted);">No subsections</span>';
+        if (tocContainer) tocContainer.innerHTML = emptyHtml;
+        if (mobileTocContainer) mobileTocContainer.innerHTML = emptyHtml;
+        if (mobileTocDetails) mobileTocDetails.open = false;
         return;
       }}
-      tocContainer.innerHTML = pageObj.toc.map(item => {{
+      const linksHtml = pageObj.toc.map(item => {{
         const cls = item.level === 3 ? "toc-link toc-level-3" : "toc-link";
         const safeTitle = item.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        return `<a href="#${{item.id}}" class="${{cls}}">${{safeTitle}}</a>`;
+        return `<a href="#${{item.id}}" class="${{cls}}" onclick="closeMobileToc()">${{safeTitle}}</a>`;
       }}).join("");
+      if (tocContainer) tocContainer.innerHTML = linksHtml;
+      if (mobileTocContainer) mobileTocContainer.innerHTML = linksHtml;
+      if (mobileTocDetails) mobileTocDetails.open = false;
+    }}
+
+    function closeMobileToc() {{
+      const mobileTocDetails = document.getElementById("mobile-toc-details");
+      if (mobileTocDetails) mobileTocDetails.open = false;
     }}
 
     function navigateToPage(pageId, scrollTargetId) {{
       const targetArticle = document.getElementById("page-" + pageId);
       if (!targetArticle) return;
+
+      closeMobileSidebar();
 
       document.querySelectorAll(".docs-article").forEach(el => el.classList.add("hidden"));
       targetArticle.classList.remove("hidden");
@@ -1366,14 +1684,35 @@ def build_docs_html(kit_dir: Path) -> Path:
       renderToc(pageId);
 
       if (scrollTargetId) {{
-        const anchorEl = document.getElementById(scrollTargetId);
+        const anchorEl = document.getElementById(scrollTargetId) || document.getElementById(scrollTargetId.replace(/-+/g, "-"));
         if (anchorEl) {{
           anchorEl.scrollIntoView({{ behavior: "smooth" }});
+          history.replaceState(null, "", "#" + anchorEl.id);
           return;
         }}
       }}
       window.scrollTo({{ top: 0, behavior: "instant" }});
       history.replaceState(null, "", "#" + pageId);
+    }}
+
+    function navigateToHash(hashValue) {{
+      const cleanHash = (hashValue || "").replace(/^#/, "");
+      if (!cleanHash) return;
+      const directPage = DOCS_INDEX.find(p => p.id === cleanHash);
+      if (directPage) {{
+        navigateToPage(directPage.id);
+        return;
+      }}
+      for (const p of DOCS_INDEX) {{
+        if (cleanHash.startsWith(p.id + "-")) {{
+          navigateToPage(p.id, cleanHash);
+          return;
+        }}
+      }}
+      const existingEl = document.getElementById(cleanHash);
+      if (existingEl) {{
+        existingEl.scrollIntoView({{ behavior: "smooth" }});
+      }}
     }}
 
     function copyCodeBlock(btn) {{
@@ -1444,6 +1783,7 @@ def build_docs_html(kit_dir: Path) -> Path:
           searchInput.focus();
         }} else if (e.key === "Escape") {{
           searchDropdown.classList.remove("open");
+          closeMobileSidebar();
         }}
       }});
     }}
@@ -1452,6 +1792,11 @@ def build_docs_html(kit_dir: Path) -> Path:
       searchDropdown.classList.remove("open");
       navigateToPage(pageId);
     }}
+
+    window.addEventListener("hashchange", () => {{
+      const hash = window.location.hash.replace(/^#/, "");
+      if (hash) navigateToHash(hash);
+    }});
 
     // Initialize theme & initial URL hash
     (function init() {{
@@ -1464,17 +1809,8 @@ def build_docs_html(kit_dir: Path) -> Path:
 
       const hash = window.location.hash.replace(/^#/, "");
       if (hash) {{
-        const directPage = DOCS_INDEX.find(p => p.id === hash);
-        if (directPage) {{
-          navigateToPage(directPage.id);
-          return;
-        }}
-        for (const p of DOCS_INDEX) {{
-          if (hash.startsWith(p.id + "-")) {{
-            navigateToPage(p.id, hash);
-            return;
-          }}
-        }}
+        navigateToHash(hash);
+        return;
       }}
       renderToc(currentPageId);
     }})();

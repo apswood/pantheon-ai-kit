@@ -195,6 +195,12 @@ def encode_reversed_base64(plain_text: str) -> str:
     return base64.b64encode(reversed_text.encode("utf-8")).decode("utf-8")
 
 
+def decode_reversed_base64(encoded_text: str) -> str:
+    """Decode Base64 and reverse UTF-8 string back to plaintext."""
+    raw = base64.b64decode(encoded_text.encode("utf-8")).decode("utf-8")
+    return raw[::-1]
+
+
 def build_keyword_rule(label: str, custom_regex: Optional[str] = None) -> Dict[str, str]:
     """Create a {NameB64, PatB64} encoded rule entry from a keyword/label and optional regex."""
     clean_label = label.strip()
@@ -273,7 +279,12 @@ def configure_custom_scanner(
     if cli_keywords:
         for kw_arg in cli_keywords:
             for lbl, rgx in parse_keyword_entries(kw_arg):
-                existing_rules.append(build_keyword_rule(lbl, rgx))
+                rule = build_keyword_rule(lbl, rgx)
+                if not any(
+                    r.get("NameB64") == rule["NameB64"] and r.get("PatB64") == rule["PatB64"]
+                    for r in existing_rules
+                ):
+                    existing_rules.append(rule)
         lib_path.write_text(json.dumps(existing_rules, indent=2), encoding="utf-8")
         ensure_gitignore_entry(workspace_dir, CUSTOM_BLOCKLIST_FILENAME)
         print(
@@ -312,10 +323,33 @@ def configure_custom_scanner(
     print("             CUSTOM KEYWORD LEAK SCANNER BUILDER ($EncodedRules Library)")
     print("           ----------------------------------------------------------------------")
     print(f"           Currently loaded custom rules in {CUSTOM_BLOCKLIST_FILENAME}: {len(existing_rules)}")
+    if existing_rules:
+        preview_labels: List[str] = []
+        for idx, r_item in enumerate(existing_rules, start=1):
+            try:
+                dec_lbl = decode_reversed_base64(r_item["NameB64"])
+                preview_labels.append(f"#{idx} '{dec_lbl}'")
+            except Exception:
+                preview_labels.append(f"#{idx} <encoded>")
+        print(f"           Loaded Rules: {', '.join(preview_labels)}")
+        try:
+            clear_ans = input(
+                "           Would you like to [K]eep existing rules or [C]lear/reset the list first? [K/c - Press Enter to keep]: "
+            ).strip().lower()
+        except EOFError:
+            clear_ans = "k"
+        if clear_ans in ("c", "clear", "reset"):
+            existing_rules.clear()
+            if lib_path.exists():
+                lib_path.unlink(missing_ok=True)
+            print(f"           [RESET] Cleared all previous custom rules from {CUSTOM_BLOCKLIST_FILENAME}.")
+
     print("           How to add organization-specific keywords:")
     print("             * Enter a single keyword (e.g. <YourCompanyName>) OR multiple")
     print("               comma-separated keywords on one line (e.g. <Company>, <internal.domain>)")
     print("             * Optional custom regex: use 'Label::Regex' (e.g. CorpDomain::\\bcorp\\.local\\b)")
+    print("             * Tip: Avoid short common English words (like 'bad' or 'good'), which match")
+    print("               inside normal words (such as 'badge' or 'Goodhart').")
     print("             * To finish at any prompt: press [Enter] on an empty line or type 'done'")
     print("           All rules are Reversed UTF-8 + Base64 encoded and added to .gitignore.\n")
 
@@ -331,9 +365,25 @@ def configure_custom_scanner(
         parsed_entries = parse_keyword_entries(raw_line)
         for lbl, rgx in parsed_entries:
             rule = build_keyword_rule(lbl, rgx)
+            dup_idx = next(
+                (
+                    i + 1
+                    for i, ex in enumerate(existing_rules)
+                    if ex.get("NameB64") == rule["NameB64"] and ex.get("PatB64") == rule["PatB64"]
+                ),
+                None,
+            )
+            if dup_idx is not None:
+                print(f"             [SKIP] '{lbl}' is already in the list as Rule #{dup_idx} (skipped duplicate).")
+                continue
+
             existing_rules.append(rule)
             added += 1
             print(f"             + Added encoded rule (#{len(existing_rules)}) for '{lbl}' -> NameB64='{rule['NameB64']}'")
+            if len(lbl) <= 3 and rgx is None:
+                print(
+                    f"               [TIP] '{lbl}' is very short ({len(lbl)} chars) and will also be checked as a substring (e.g. inside longer words)."
+                )
 
         try:
             more = input("           Add more keywords? [y/N - Press Enter to finish & save]: ").strip().lower()
@@ -342,12 +392,12 @@ def configure_custom_scanner(
         if more not in ("y", "yes"):
             break
 
-    if added > 0 or lib_path.exists():
+    if existing_rules:
         lib_path.write_text(json.dumps(existing_rules, indent=2), encoding="utf-8")
         ensure_gitignore_entry(workspace_dir, CUSTOM_BLOCKLIST_FILENAME)
         print(f"           [OK] Saved {len(existing_rules)} encoded rule(s) to {lib_path} (gitignored).")
     else:
-        print("           [SKIP] No custom keywords added.")
+        print("           [SKIP] No custom keywords active.")
 
 
 def plan_uninstallation(

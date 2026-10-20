@@ -166,7 +166,8 @@ pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir 
 - [x] **Governance & Infrastructure Skills (6 Skills)**: Configured 6 progressive-disclosure skills in `.agents/skills/`.
 - [x] **AEGIS Copy-Paste Prompt & API Pipeline Blueprint**: Added `Governance_Framework/AEGIS_Agent_System_Prompt.md`.
 - [x] **Workspace Lifecycle Symmetry & Surgical Uninstallation**: Added `--uninstall`, `--purge-secrets`, `--dry-run`, and source-repo protection to `setup.py` and `validate_and_install.ps1`.
+- [x] **UX Polish, Streamlined README & Responsive HTML Docs**: Placed Quickstart/Installation directly beneath the concise `README.md` summary, moved deep-dive engineering content to `ANTIGRAVITY_SETUP_GUIDE.md` / `ANTIGRAVITY_DOCS.html` with mobile slide-over navigation and responsive tables/code blocks, and added end-of-script custom rule match & severity summaries to `validate_and_install.ps1` and `validate_kit.py`.
 - [ ] **Future Project (Untested)**: Implement tracer-bullet Slice 1 of the `AEGIS` multi-vendor API config ingestion pipeline.
 
 ---
-*Last Updated: 2026-10-19 (Session 3: Added Symmetrical File Removal & Surgical Uninstaller to setup.py and validate_and_install.ps1)*
+*Last Updated: 2026-10-20 (Session 4: Streamlined README, Mobile-Responsive HTML Portal & Custom Rule Match Summary UX)*

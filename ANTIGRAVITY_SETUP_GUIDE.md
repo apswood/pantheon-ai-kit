@@ -54,6 +54,48 @@ To eliminate unnecessary jargon, this guide maps core software development pract
 
 *Polyglot Golden Rule*: Default to **Python** for analytical engines, API collectors, and cross-platform tools; use **PowerShell 7.2+** (never legacy Windows PowerShell 5.1) as a thin OS/credential/WinRM wrapper, exchanging data strictly via structured JSON files or environment variables.
 
+### 1.4 Grounding Frameworks, Standards Catalogue & System Architecture
+
+Every scoring rubric, operational skill, and audit check in the **PANTHEON AI Agent and Skills Setup Kit for Service Governance** is anchored to established international service management, cybersecurity, and operational resilience frameworks:
+
+| Domain Pillar | Grounding Frameworks & Standards | How PANTHEON AI Applies It |
+| :--- | :--- | :--- |
+| **Service Management & Operational Excellence** | **ITIL 4 & ITIL 5** *(Service Value System, Continual Improvement, Incident/Problem/Request/Change Management, AI-Native Value Streams & Digital Product/Service Governance)* | Grounds **`SAGE`** and the 5 operational governance skills: business-hours staleness (`8.5h`/`17.0h`), 5-tier age bucketing, 145-point backlog prioritisation, intraday capacity pacing (`315 min/day`), $\ge 10\%$ proactive problem allocation (`PRB`/`PTASK`), and dual-metric quality auditing (`Resolve Pass %` + `Granular Score %`). |
+| **Network & Infrastructure Security Baselines** | **NIST SP 800-41 Rev. 1** *(Firewall Policy)*, **NIST SP 800-53 Rev. 5 Update 1** *(21 Controls: SC-7, AC-4, AC-6, AU-2, CM-2, CM-6, SI-2, etc.)*, **NIST CSF 2.0** *(Feb 2024)*, **NCSC Guidance & Cyber Essentials Plus Alignment** *(Boundary Firewalls, Secure Configuration, Access Control, Malware Protection, Security Update Management, 10 Steps)* | Grounds **`AEGIS`** and `infrastructure-best-practice-analyser` (`Test Library 1.1.0`) across **Palo Alto (`PAN-OS`)**, **FortiGate (`FortiOS`)**, **Juniper (`Junos`)**, **Windows Server**, and **Linux Server**. |
+| **Operational Resilience & Regulatory Governance** | **UK Financial-Services Outcomes (`UKFS-01` to `UKFS-06`)** drawing on **FCA PS21/3**, **PRA PS6/21 & SS1/21** *(Impact Tolerances)*, and **PRA SS2/21** *(Third-Party Risk)*; optional **NCSC CAF (`B2`, `B4`, `C1`)** | Evaluates technology risk, change governance, third-party assurance, and impact tolerances for Important Business Services (`IBS`) without falsely claiming regulators prescribe specific firewall rules. |
+| **Licensed Standards (Reference-ID Placeholders Only)** | **ISO/IEC 27001:2022 & 27002:2022** *(16 Annex A IDs)*, **CIS Benchmarks** *(3 topic placeholders)*, **PCI DSS 4.0.1 Req 1** *(1.2.2–1.4.2)*, **SWIFT CSCF** *(1.1, 2.3, 4.2, 6.4)* | Recorded strictly as reference numbers or topic placeholders until licensed copies are supplied and verified by an authorised engineer (zero copyrighted text reproduced). |
+| **Agentic Software Engineering & Security Hygiene** | **Deep Modules & Clean Seams**, **Two-Axis Code Review**, **Tracer-Bullet Slicing**, **Zero-Trust Secret Isolation (DPAPI / `.env.template`)** | Grounds **`ATLAS`**, **`SENTINEL`**, and **`SPARK`** to enforce pure-function vs. I/O separation, offline JSON fixture parity (`Python` + `PowerShell 7.2+`), and mandatory `<REDACTED>` secret scrubbing. |
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│        PANTHEON AI AGENT AND SKILLS SETUP KIT FOR SERVICE GOVERNANCE (`pantheon-ai-kit`)│
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                        │
+│  [ THE PANTHEON: 5 SPECIALIST MULTI-AGENT PERSONAS (.agents/agents/) ]                 │
+│  ├── AEGIS (Infra Best-Practice: PAN-OS, FortiOS, Junos, Windows, Linux & UKFS-01..06) │
+│  ├── ATLAS (Deep Modules, Seams & Parity)     ├── SENTINEL (Secrets, Redaction, GDPR) │
+│  └── SAGE (ITIL 4/5 Governance & KPI Metrics) └── SPARK (Design-Tree Grilling & Kaizen)│
+│                                                                                        │
+│                                           │ Evaluates & Guides                         │
+│                                           ▼                                            │
+│  [ 6 MODULAR OPERATIONAL & INFRASTRUCTURE SKILLS (.agents/skills/) ]                   │
+│  ├── infrastructure-best-practice-analyser  (NIST, NCSC/CE+, UKFS-01..06, Test Lib 1.1)│
+│  ├── ticket-backlog-governance              (145-pt Rubric, 5-Tier Age Bands)          │
+│  ├── productivity-workload-governance       (315m Pacing, 80% Utilization, Throughput) │
+│  ├── quality-audit-governance               (Resolve Pass % + Granular QA Score)       │
+│  ├── teams-standup-digest-notifier          (Top 5 Standup Cards, Multi-Day Badges)    │
+│  └── support-team-governance-analytics-coaching (3-Step Evidence-Based Coaching)       │
+│                                                                                        │
+│                                           │ Drives & Governs                           │
+│                                           ▼                                            │
+│  [ DECOUPLED APPLICATION CORE & HYGIENE ]                                              │
+│  ├── Pure Calculation Engines (Deterministic math, offline JSON fixture testing)       │
+│  ├── I/O Integration Layer (Resilient ITSM/Vendor APIs, Graph API, fail-fast config)   │
+│  └── Secret Isolation Barrier (.env blocked by .gitignore, Windows DPAPI SecretStore)  │
+│                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 2. Antigravity Customization Architecture & Progressive Disclosure
@@ -1060,6 +1102,63 @@ Antigravity provides specialized slash commands in the Chat Canvas to orchestrat
   Initiates a structured interrogation session where the agent maps your idea as a **design tree** and interviews you across the **ready frontier** (numbered questions with opinionated recommendations) until every architectural ambiguity is resolved before writing code.
 - **`/compact` (Context Window Compaction)**:
   Summarizes and compacts a long conversation into a clean state checkpoint, freeing up context window tokens when transitioning from *Discovery/Planning* to *Implementation*.
+
+### 7.6 Custom Organization Keyword Leak Scanner & Validation Severity Guide
+
+To guarantee that **zero reversible organization-specific text** exists in the upstream repository, [`validate_kit.py`](validate_kit.py) and [`validate_and_install.ps1`](validate_and_install.ps1) ship only with **5 built-in generic credential/secret regex rules** (`PEM Private Keys`, `GitHub PATs`, `AWS Access Key IDs`, `Slack API Tokens`, `Hardcoded OAuth Client Secrets`).
+
+During setup (or anytime thereafter), you can optionally build a **local library of custom organization keywords, domains, colleague names, or resource IDs** (`$EncodedRules` stored in `.custom_blocklist.json`):
+- **Single or Comma-Separated Input**: Enter a single keyword (`AcmeCorp`) or multiple comma-separated keywords on one line (`AcmeCorp, acme.internal, ProjectX`), or use `Label::Regex` (`AcmeDomain::\bacme\.internal\b`) for custom regexes.
+- **Duplicate Prevention & Reset Option**: The interactive builder automatically skips duplicate keywords and allows you to keep or clear existing rules in `.custom_blocklist.json`.
+- **Reversed UTF-8 + Base64 Encoding & `.gitignore` Protection**: Each keyword and regex pattern is encoded (`NameB64` and `PatB64`) and saved to `.custom_blocklist.json` (which is automatically added to `.gitignore`) so naive `grep` searches never self-trigger on the rule file and custom rules are never committed upstream.
+
+#### Understanding Validation Match Results & Severity Levels
+When Stage 3 (`De-Identification & Secret Leak Scan`) detects a match, the validator prints a detailed **Validation Match Summary & Severity Assessment** at the end of the run, classifying matches into three clear tiers:
+
+| Match Category | Severity Level | What It Means & Why It Matched | Recommended Action |
+| :--- | :--- | :--- | :--- |
+| **1. Built-In Secret Rule Match** | **CRITICAL** | Matched one of the 5 built-in credential patterns (`PEM Private Key`, `GitHub PAT`, `AWS Access Key ID`, `Slack Token`, or `Hardcoded OAuth Client Secret`). | **Immediate Remediation**: Rotate/revoke the exposed credential immediately and move it to `.env` or Windows DPAPI SecretStore. |
+| **2. Custom Rule — Whole-Word / Regex Match** | **MEDIUM (Review Required)** | Matched the full word boundary (`\b<keyword>\b`) or custom regex of a keyword you added to `.custom_blocklist.json`. | **Review**: If the keyword is a real confidential organization, client, or internal domain name, replace it with a generic placeholder (`<ORGANIZATION_NAME>`). |
+| **3. Custom Rule — Partial Substring Match** | **LOW (Likely False Positive)** | The characters of a custom keyword appeared *inside* a longer unrelated word (for example, entering test keyword `'bad'` matches inside CSS class `.brand-badge`, or `'good'` matches inside `'Goodhart'`). | **Benign / False Positive**: Avoid short common English words in `.custom_blocklist.json`. Remove or update your custom rules via `-ConfigureCustomScanner` or `--configure-scanner`. |
+
+```powershell
+# Reconfigure or clear custom scanner rules interactively:
+pwsh -NoProfile -File .\validate_and_install.ps1 -ConfigureCustomScanner
+python setup.py --configure-scanner
+
+# Or remove .custom_blocklist.json completely and re-validate:
+Remove-Item .\.custom_blocklist.json -Force -ErrorAction SilentlyContinue
+pwsh -NoProfile -File .\validate_and_install.ps1 -ValidateOnly
+```
+
+### 7.7 Workspace Lifecycle Symmetry & Surgical Uninstallation
+
+Provisioning starter kit files into shared enterprise repositories requires equal rigor when decommissioning or rolling back changes. Both [`setup.py`](setup.py) and [`validate_and_install.ps1`](validate_and_install.ps1) implement non-destructive, surgical uninstallation:
+
+1. **Three-Tier State Decomposition**:
+   - **Tier 1 (Canonical Kit Files)**: Agents (`.agents/agents/*`), skills (`.agents/skills/*`), rules, and scripts (`setup.py`, `validate_kit.py`, etc.). Always safely removed during uninstallation.
+   - **Tier 2 (Generated Caches & Output)**: `ANTIGRAVITY_DOCS.html`, `.venv/`, `__pycache__/`. Removed when requested (`--purge-venv` / `-PurgeVenv`).
+   - **Tier 3 (User Secrets & Keyword Blocklists)**: `.env` (contains live enterprise tokens) and `.custom_blocklist.json`. **Preserved by default** to prevent accidental credential loss; deleted only when explicit flags (`--purge-secrets` / `-PurgeSecrets`) are supplied.
+2. **Suicide Deletion Hazard & Source Repo Protection**:
+   - Running `python setup.py --uninstall` or `pwsh validate_and_install.ps1 -Uninstall` directly inside the kit source clone aborts immediately (`Exit Code 1`) to prevent accidental repository self-destruction. Uninstallation requires either an external `--target-dir` / `-TargetWorkspaceDir` or an explicit `--force` override.
+3. **Surgical Deletion vs. Recursive Purge**:
+   - Uninstallation removes only the 24 canonical kit files and generated artifacts. It prunes parent directories (`.agents/agents/`, `.agents/skills/`, `.agents/`) **only if they become completely empty**, preserving any custom agents, skills, or configurations created by your engineers.
+4. **Deterministic Dry-Run Verification**:
+   - Both `python setup.py --uninstall --dry-run` and `pwsh validate_and_install.ps1 -Uninstall -WhatIf` output a detailed preview of all candidate files and directories without altering disk state.
+
+```powershell
+# Preview deletion plan without removing any files (Dry Run / WhatIf)
+python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" --dry-run
+pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Workspaces\ServiceDeliveryOps" -WhatIf
+
+# Execute surgical uninstallation (preserves .env and custom user files)
+python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" -y
+pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Workspaces\ServiceDeliveryOps" -Force
+
+# Complete purge including .env, .custom_blocklist.json, and .venv
+python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" --purge-secrets --purge-venv -y
+pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir "C:\Workspaces\ServiceDeliveryOps" -PurgeSecrets -PurgeVenv -Force
+```
 
 ---
 
