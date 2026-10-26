@@ -759,7 +759,7 @@ $AllFiles = Get-ChildItem -Path $KitRoot -Recurse -File | Where-Object {
     $_.Extension -ne ".pyc" -and
     $_.FullName -notmatch '[\\/]\.git([\\/]|$)' -and
     $_.FullName -notmatch '[\\/]\.venv([\\/]|$)' -and
-    $_.FullName -notmatch '[\\/]__pycache__([\\/]|$)'
+    $_.FullName -notmatch '[\\/](__pycache__|\.pytest_cache|\.ruff_cache|\.mypy_cache|node_modules)([\\/]|$)'
 }
 
 $decodedRules = @()

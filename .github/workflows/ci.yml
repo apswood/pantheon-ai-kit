@@ -55,6 +55,21 @@ jobs:
       - name: Uninstall dry run
         run: python setup.py --uninstall --target-dir "${{ runner.temp }}" --dry-run
 
+  tests:
+    name: Unit tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pytest
+      - run: python -m pytest -q tests
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -66,7 +81,7 @@ jobs:
       - name: Ruff (errors and undefined names only)
         run: |
           pip install ruff==0.6.9
-          ruff check --select E9,F63,F7,F82,F401 setup.py build_docs.py validate_kit.py tools/
+          ruff check --select E9,F63,F7,F82,F401 setup.py build_docs.py validate_kit.py tools/ tests/
       - name: PSScriptAnalyzer (errors only)
         shell: pwsh
         run: |

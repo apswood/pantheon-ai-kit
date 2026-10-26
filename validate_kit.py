@@ -32,6 +32,9 @@ RESET = "\033[0m"
 
 CUSTOM_BLOCKLIST_FILENAME = ".custom_blocklist.json"
 
+# Directories never scanned: VCS metadata, virtual environments and tool caches (the latter can echo test data).
+SCAN_SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "node_modules"}
+
 # Expected Kit Files Relative to Kit Root (All 37 canonical files)
 EXPECTED_FILES = [
     "README.md",
@@ -341,7 +344,7 @@ def scan_deidentification_detailed(
     custom_leak_count = 0
 
     for root, dirs, files in os.walk(kit_dir):
-        dirs[:] = [d for d in dirs if d not in {".git", ".venv", "venv", "__pycache__"}]
+        dirs[:] = [d for d in dirs if d not in SCAN_SKIP_DIRS]
         for fname in files:
             if fname in excluded_filenames or fname.endswith((".zip", ".pyc", ".pyo", ".pyd")):
                 continue
