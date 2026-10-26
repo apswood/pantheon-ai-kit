@@ -102,3 +102,34 @@ def test_expected_files_unique_and_regex_compiles():
     assert len(vk.EXPECTED_FILES) == len(set(vk.EXPECTED_FILES))
     for _label, pat in vk.GENERIC_SECRET_PATTERNS:
         re.compile(pat)
+
+
+# ---------------- prose counts, size warning, repo slug
+def test_prose_count_mismatch_detected(tmp_path):
+    n = len(vk.EXPECTED_FILES)
+    (tmp_path / "README.md").write_text(f"Downloads all {n} canonical kit files.\n", encoding="utf-8")
+    assert vk.validate_prose_counts(tmp_path) == []
+    (tmp_path / "README.md").write_text("Downloads all 24 canonical kit files.\nAlso 99 components.\n", encoding="utf-8")
+    errors = vk.validate_prose_counts(tmp_path)
+    assert len(errors) == 2 and errors[0].startswith("README.md:1:")
+
+
+def test_gemini_size_warning_threshold(tmp_path):
+    (tmp_path / "GEMINI.md").write_text("x" * (vk.GEMINI_WARN_BYTES - 1), encoding="utf-8")
+    assert vk.gemini_size_warning(tmp_path) is None
+    (tmp_path / "GEMINI.md").write_text("x" * vk.GEMINI_WARN_BYTES, encoding="utf-8")
+    assert "GEMINI.md" in vk.gemini_size_warning(tmp_path)
+
+
+def test_repo_slug_is_consistent_everywhere():
+    from pathlib import Path
+
+    root = Path(vk.__file__).resolve().parent
+    owner = vk.REPO_SLUG.split("/")[0]
+    pattern = re.compile(r"github\.com/([\w.-]+)/([\w.-]+)|raw\.githubusercontent\.com/([\w.-]+)/([\w.-]+)")
+    for rel in ("setup.py", "validate_and_install.ps1", "README.md", "GEMINI.md", "build_docs.py"):
+        for m in pattern.finditer((root / rel).read_text(encoding="utf-8")):
+            o, r = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))
+            assert f"{o}/{r}" == vk.REPO_SLUG, f"{rel}: {o}/{r}"
+    for rel in ("setup.py", "validate_and_install.ps1"):
+        assert owner in (root / rel).read_text(encoding="utf-8")

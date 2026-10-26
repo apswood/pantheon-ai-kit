@@ -706,7 +706,7 @@ if (Test-Path -LiteralPath $geminiFile) {
 }
 
 if ($Issues.Count -eq 0) {
-    Write-Host "  [PASS] All 37 canonical files exist and GEMINI.md size is within limits." -ForegroundColor Green
+    Write-Host "  [PASS] All $($RequiredFiles.Count) canonical files exist and GEMINI.md size is within limits." -ForegroundColor Green
 } else {
     Write-Host "  [FAIL] Detected $($Issues.Count) structure/size issue(s)." -ForegroundColor Red
 }

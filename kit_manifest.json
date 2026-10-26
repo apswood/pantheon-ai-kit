@@ -37,7 +37,7 @@
     "README.md": "23377d776e7cf8e151afa0b72acfe0c0b1762afa5888007f2f625a714569e0da",
     "build_docs.py": "cd5e90d8df3be2b20e5f254f196e304ad9c48275b0a42d8cbaa1435f3839ace3",
     "setup.py": "4242166aebcee9b2b6803b48d14cfb2c9d87c24cb8b03d9e621cfe0d28b274d1",
-    "validate_and_install.ps1": "dbc7b56b6d666d6c4f7c6c9c030bdbf07670dd516d9edffe892a7a1b91990838",
-    "validate_kit.py": "63cd2e9485350df71763b4efa32aadcafc6da124fa1987cdea7b607558af1730"
+    "validate_and_install.ps1": "c35bb1832404abfd20af9c9f56a9b2aa2fb8077770e2528b4a81634184980e82",
+    "validate_kit.py": "ae51557d3f15cc0c57e902ac1c3a12a3b65a709eaedfb56db95d169c9793790d"
   }
 }

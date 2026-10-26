@@ -32,6 +32,22 @@ RESET = "\033[0m"
 
 CUSTOM_BLOCKLIST_FILENAME = ".custom_blocklist.json"
 
+# GEMINI.md hard limit is 24,000 bytes; warn (never fail) once it passes 80%.
+GEMINI_WARN_BYTES = 19200
+
+# Canonical GitHub repository; setup.py and validate_and_install.ps1 must agree (tests/test_setup.py).
+REPO_SLUG = "apswood/pantheon-ai-kit"
+
+# Files whose prose may state how many canonical files the kit has; the count must equal len(EXPECTED_FILES).
+PROSE_COUNT_FILES = [
+    "README.md",
+    "ANTIGRAVITY_SETUP_GUIDE.md",
+    "setup.py",
+    "validate_kit.py",
+    "validate_and_install.ps1",
+]
+PROSE_COUNT_RE = re.compile(r"\b(\d+)\s+(?:canonical(?:\s+kit)?\s+files?|kit\s+files|components)\b", re.IGNORECASE)
+
 # Directories never scanned: VCS metadata, virtual environments and tool caches (the latter can echo test data).
 SCAN_SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "node_modules"}
 
@@ -420,6 +436,29 @@ def scan_deidentification(kit_dir: Path, blocklist: List[Tuple[str, str, Any, bo
     return errors
 
 
+def gemini_size_warning(kit_dir: Path) -> Optional[str]:
+    """Return a warning when GEMINI.md exceeds 80% of its byte budget (never an error)."""
+    path = kit_dir / "GEMINI.md"
+    if path.is_file() and path.stat().st_size >= GEMINI_WARN_BYTES:
+        return f"GEMINI.md is {path.stat().st_size:,} of 24,000 bytes ({path.stat().st_size * 100 // 24000}%) - trim before it hits the limit."
+    return None
+
+
+def validate_prose_counts(kit_dir: Path) -> List[str]:
+    """Fail when prose claims a canonical-file count that differs from len(EXPECTED_FILES)."""
+    errors: List[str] = []
+    expected = len(EXPECTED_FILES)
+    for rel in PROSE_COUNT_FILES:
+        path = kit_dir / rel
+        if not path.is_file():
+            continue
+        for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            for m in PROSE_COUNT_RE.finditer(line):
+                if int(m.group(1)) != expected:
+                    errors.append(f"{rel}:{lineno}: says '{m.group(0)}' but the kit has {expected} canonical files")
+    return errors
+
+
 def validate_configs(kit_dir: Path) -> List[str]:
     """Stage 4: Configuration templates, .gitignore sanity, and living session markers."""
     errors = []
@@ -461,6 +500,7 @@ def validate_configs(kit_dir: Path) -> List[str]:
         if not re.search(r"##.*(?:Done|Milestones|Changelog)", g_content, re.IGNORECASE):
             errors.append("GEMINI.md missing living session marker: 'Project Milestones / What\'s Done'")
 
+    errors.extend(validate_prose_counts(kit_dir))
     return errors
 
 
@@ -518,6 +558,9 @@ def main() -> None:
                 print(f"         ! {err}")
     else:
         print(f"  {GREEN}[PASS] All {len(EXPECTED_FILES)} canonical files exist and GEMINI.md is within 24,000 byte limit.{RESET}")
+    size_warning = gemini_size_warning(kit_dir)
+    if size_warning:
+        print(f"  {YELLOW}[WARN] {size_warning}{RESET}")
 
     # 2. YAML Frontmatter Check
     print(f"[{YELLOW}STAGE 2/4{RESET}] Verifying agent and skill YAML frontmatter schemas...")
