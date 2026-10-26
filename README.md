@@ -13,7 +13,7 @@
 
 ## 1. Quickstart & Installation
 
-You do **not** need to clone or manually download the repository beforehand. Run a single bootstrap command in your target project directory to download all 37 canonical kit files, initialize `.env` from `.env.template`, optionally configure the custom keyword leak scanner, and run all 4 pre-flight validation checks.
+You do **not** need to clone or manually download the repository beforehand. Run a single bootstrap command in your target project directory to download all 43 canonical kit files, initialize `.env` from `.env.template`, optionally configure the custom keyword leak scanner, and run all 4 pre-flight validation checks.
 
 ### Option A: Zero-Clone PowerShell One-Liner (Recommended)
 Open PowerShell (`pwsh` 7.2+ recommended, or Windows PowerShell 5.1) in your target directory and run:
@@ -31,7 +31,7 @@ $env:PANTHEON_TARGET_DIR = "C:\Workspaces\ServiceDeliveryOps"; irm https://raw.g
 If you prefer Python (Windows, macOS, or Linux):
 
 ```powershell
-# Zero-clone Python bootstrap (fetches all 37 kit files, initializes .env, rebuilds HTML docs, and validates):
+# Zero-clone Python bootstrap (fetches all 43 kit files, initializes .env, rebuilds HTML docs, and validates):
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/setup.py -OutFile setup.py; python setup.py --init-env
 
 # Or from an existing local clone (with optional isolated .venv creation):
@@ -126,7 +126,7 @@ Skills use **progressive disclosure**—only their lightweight YAML context poin
 
 ---
 
-## 3. Repository Layout (37 Canonical Files)
+## 3. Repository Layout (43 Canonical Files)
 
 ```text
 pantheon-ai-kit/

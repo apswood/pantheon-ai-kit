@@ -13,6 +13,7 @@ Why this Hybrid Architecture?
    `ANTIGRAVITY_DOCS.html` directly from the live `.md` files in under 0.5 seconds.
 """
 
+import base64
 import html
 import json
 import re
@@ -48,6 +49,15 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "badge": "Always-On Rule",
         "path": "GEMINI.md",
         "description": "Reusable living handover document and workspace rule template injected automatically into Antigravity sessions.",
+    },
+    {
+        "id": "claude-md",
+        "title": "Claude Code Entry Point (CLAUDE.md)",
+        "short_title": "CLAUDE.md (Claude Code)",
+        "category": "Workspace Rules & Templates",
+        "badge": "Claude Code",
+        "path": "CLAUDE.md",
+        "description": "Claude Code entry point that imports the shared GEMINI.md ledger and explains the generated .claude/ mirror.",
     },
     {
         "id": "sage-master-prompt",
@@ -176,6 +186,15 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "description": "Cross-dimensional synthesis across Backlog, Quality, Productivity, and Customer Sentiment with 3-step coaching plans.",
     },
 ]
+
+
+EMOJI_RE = re.compile("(?:[\U0001F000-\U0001FAFF\u2705\u274c\u2753\u27a1\u26a1\ufe0f\u200d])+ ?")
+BOX_DRAWING_RE = re.compile("[\u2500-\u257f]")
+
+
+def strip_emoji(text: str) -> str:
+    """Remove pictographic emoji (and one trailing space) so the portal reads as plain, consistent type."""
+    return EMOJI_RE.sub("", text)
 
 
 def split_frontmatter(raw_text: str) -> Tuple[Dict[str, str], str]:
@@ -338,11 +357,14 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
                 i += 1
             raw_code = "\n".join(code_lines)
             escaped_code = html.escape(raw_code)
-            lang_badge = html.escape(lang.upper())
+            lang_badge = html.escape(lang.lower())
+            is_diagram = bool(BOX_DRAWING_RE.search(raw_code))
+            wrapper_cls = "code-block-wrapper code-diagram" if is_diagram else "code-block-wrapper"
+            scroll_note = ' <span class="scroll-note">(scrolls sideways)</span>' if is_diagram else ""
             out.append(
-                f'<div class="code-block-wrapper">'
+                f'<div class="{wrapper_cls}">'
                 f'<div class="code-block-header">'
-                f'<span class="code-lang">{lang_badge}</span>'
+                f'<span class="code-lang">{lang_badge}{scroll_note}</span>'
                 f'<button type="button" class="copy-btn" onclick="copyCodeBlock(this)" title="Copy code to clipboard">Copy</button>'
                 f"</div>"
                 f'<pre class="code-pre"><code>{escaped_code}</code></pre>'
@@ -390,15 +412,26 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
                 body_rows.append(row_cells)
                 i += 1
 
+            # Columns whose every filled cell is a bare number (optionally with a unit) are right-aligned.
+            num_re = re.compile(r"[+-]?[\d.,]+\s?(?:%|h|min|d|pts|points|KB|MB|bytes)?")
+            numeric_cols = set()
+            for col in range(len(header_cells)):
+                col_vals = [re.sub(r"[`*$]", "", r[col]).strip() for r in body_rows if col < len(r) and r[col].strip()]
+                if col_vals and all(num_re.fullmatch(v) for v in col_vals):
+                    numeric_cols.add(col)
+
             table_html = ['<div class="table-responsive"><table class="docs-table"><thead><tr>']
-            for cell in header_cells:
-                table_html.append(f"<th>{render_inline(cell, page_id)}</th>")
+            for col, cell in enumerate(header_cells):
+                th_cls = ' class="num"' if col in numeric_cols else ""
+                table_html.append(f"<th{th_cls}>{render_inline(cell, page_id)}</th>")
             table_html.append("</tr></thead><tbody>")
             for row in body_rows:
                 table_html.append("<tr>")
                 for idx_c in range(len(header_cells)):
                     val = row[idx_c] if idx_c < len(row) else ""
-                    table_html.append(f"<td>{render_inline(val, page_id)}</td>")
+                    label = html.escape(re.sub(r"[`*]", "", header_cells[idx_c]), quote=True)
+                    td_cls = ' class="num"' if idx_c in numeric_cols else ""
+                    table_html.append(f'<td{td_cls} data-label="{label}">{render_inline(val, page_id)}</td>')
                 table_html.append("</tr>")
             table_html.append("</tbody></table></div>")
             out.append("".join(table_html))
@@ -499,6 +532,123 @@ def markdown_to_html(md_text: str, page_id: str) -> Tuple[str, List[Dict[str, An
     return "\n".join(out), toc
 
 
+TEMPLATE_DIR = Path(__file__).resolve().parent / "docs_template"
+
+TOOL_VARIANT = '<span data-tool-only="{tool}"><span class="tool-tag">{label}</span>{body}</span>'
+
+
+def tool_pair(antigravity: str, claude: str) -> str:
+    """Render both tool variants; the portal script shows the one for the selected tool (both without scripting)."""
+    return TOOL_VARIANT.format(tool="antigravity", label="Antigravity", body=antigravity) + TOOL_VARIANT.format(
+        tool="claude", label="Claude Code", body=claude
+    )
+
+
+def render_invoke_card(entry: Dict[str, str]) -> str:
+    """Per-agent / per-skill card showing where the file lives and how to invoke it in each tool."""
+    path = entry["path"]
+    parts = path.split("/")
+    if len(parts) == 4 and parts[0] == ".agents" and parts[1] == "agents":
+        name = parts[2]
+        lives = tool_pair(f"<code>.agents/agents/{name}/agent.md</code>", f"<code>.claude/agents/{name}.md</code>")
+        invoke = f"<code>@{name}</code> or ask by name in plain language"
+    elif len(parts) == 4 and parts[0] == ".agents" and parts[1] == "skills":
+        name = parts[2]
+        lives = tool_pair(f"<code>.agents/skills/{name}/SKILL.md</code>", f"<code>.claude/skills/{name}/SKILL.md</code>")
+        invoke = f"<code>/{name}</code>"
+    else:
+        return ""
+    context = tool_pair("<code>GEMINI.md</code>", "<code>CLAUDE.md</code> (imports GEMINI.md)")
+    return (
+        '<div class="invoke-card"><dl class="live-rows">'
+        f'<div class="live-row"><dt>Lives in</dt><dd>{lives}</dd></div>'
+        f'<div class="live-row"><dt>Invoke</dt><dd>{invoke}</dd></div>'
+        f'<div class="live-row"><dt>Context file</dt><dd>{context}</dd></div>'
+        "</dl></div>"
+    )
+
+
+def render_home(pages_data: List[Dict[str, Any]]) -> str:
+    """Home view shown above the README: what the kit is, the one primary action, and the live tool switch."""
+
+    def rows(category: str) -> str:
+        items = []
+        for p in pages_data:
+            if p["category"] != category:
+                continue
+            pid = p["id"]
+            items.append(
+                f'<li><a class="home-row" href="#{pid}" onclick="navigateToPage(\'{pid}\'); return false;">'
+                f'<span class="home-row-name">{html.escape(p["short_title"])}</span>'
+                f'<span class="home-row-desc">{html.escape(p["description"])}</span></a></li>'
+            )
+        return "".join(items)
+
+    live = (
+        '<div class="live-panel">'
+        "<h2>Pick your tool</h2>"
+        "<p>The same agents and skills run in both. Paths and commands below follow your choice everywhere in these docs.</p>"
+        '<div class="seg" role="group" aria-label="Tool">'
+        '<button type="button" data-set-tool="antigravity" aria-pressed="true">Antigravity</button>'
+        '<button type="button" data-set-tool="claude" aria-pressed="false">Claude Code</button>'
+        "</div>"
+        '<dl class="live-rows">'
+        f'<div class="live-row"><dt>Agents live in</dt><dd>{tool_pair("<code>.agents/agents/</code>", "<code>.claude/agents/</code>")}</dd></div>'
+        f'<div class="live-row"><dt>Skills live in</dt><dd>{tool_pair("<code>.agents/skills/</code>", "<code>.claude/skills/</code>")}</dd></div>'
+        f'<div class="live-row"><dt>Context file</dt><dd>{tool_pair("<code>GEMINI.md</code>", "<code>CLAUDE.md</code>, which imports GEMINI.md")}</dd></div>'
+        '<div class="live-row"><dt>Ask an agent</dt><dd><code>@aegis_best_practice</code> or plain language</dd></div>'
+        '<div class="live-row"><dt>Run a skill</dt><dd><code>/ticket-backlog-governance</code></dd></div>'
+        "</dl></div>"
+    )
+    return (
+        '<section class="home" id="home" aria-label="Welcome">'
+        "<h1>Governance agents and skills</h1>"
+        '<div class="home-lead-row"><div>'
+        '<p class="home-sentence">Five advisory agents and six skills for ITIL, NIST and UK resilience standards. '
+        "One command installs them; they run in Antigravity or Claude Code.</p>"
+        '<div class="home-actions">'
+        "<a class=\"btn btn-primary\" href=\"#readme-1-quickstart-installation\" "
+        "onclick=\"navigateToPage('readme', 'readme-1-quickstart-installation'); return false;\">Quickstart</a>"
+        "<a class=\"link-quiet\" href=\"#setup-guide\" onclick=\"navigateToPage('setup-guide'); return false;\">Read the setup guide</a>"
+        "</div></div>"
+        f"{live}</div>"
+        '<div class="home-lists">'
+        f'<div><h2>Five specialist agents</h2><ul class="home-list">{rows("Specialist Advisory Agents")}</ul></div>'
+        f'<div><h2>Six operational skills</h2><ul class="home-list">{rows("Operational & KPI Skills")}</ul></div>'
+        "</div></section>"
+    )
+
+
+def render_portal(
+    total_docs: int,
+    sidebar_nav: str,
+    articles: str,
+    build_label: str,
+    index_json: str,
+    default_page_id: str,
+    home: str = "",
+) -> str:
+    """Fill docs_template/portal.html (CSS and JS are separate files) with the compiled content."""
+    template = (TEMPLATE_DIR / "portal.html").read_text(encoding="utf-8")
+    css = (TEMPLATE_DIR / "portal.css").read_text(encoding="utf-8").rstrip("\n")
+    for token, font_file in (("@@FONT_SANS@@", "IBMPlexSans-var.woff2"), ("@@FONT_MONO@@", "IBMPlexMono-400.woff2")):
+        css = css.replace(token, base64.b64encode((TEMPLATE_DIR / "fonts" / font_file).read_bytes()).decode("ascii"))
+    js = (TEMPLATE_DIR / "portal.js").read_text(encoding="utf-8").rstrip("\n")
+    # Assets first, content last: compiled markdown may legitimately contain "@@" sequences.
+    page = template.replace("@@CSS@@", css).replace("@@JS@@", js)
+    replacements = {
+        "@@TOTAL_DOCS@@": str(total_docs),
+        "@@BUILD_LABEL@@": build_label,
+        "@@DEFAULT_PAGE@@": default_page_id,
+        "@@SIDEBAR_NAV@@": sidebar_nav,
+        "@@ARTICLES@@": articles,
+        "@@HOME@@": home,
+        "@@INDEX_JSON@@": index_json,
+    }
+    # Single pass so substituted content is never re-scanned for tokens.
+    return re.sub("|".join(re.escape(k) for k in replacements), lambda m: replacements[m.group(0)], page)
+
+
 def build_docs_html(kit_dir: Path) -> Path:
     """Compile all manifest files in kit_dir into ANTIGRAVITY_DOCS.html."""
     pages_data: List[Dict[str, Any]] = []
@@ -519,8 +669,18 @@ def build_docs_html(kit_dir: Path) -> Path:
             )
         else:
             meta, md_body = split_frontmatter(raw_content)
+        md_body = strip_emoji(md_body)
+        meta = {k: strip_emoji(str(v)) for k, v in meta.items()}
 
         rendered_html, toc = markdown_to_html(md_body, entry["id"])
+        # Long Markdown titles wrap past two lines on a phone; show the short manifest title (the id and anchor stay).
+        rendered_html = re.sub(
+            r'(<h1 [^>]*>).*?(<a class="heading-anchor")',
+            lambda m: m.group(1) + html.escape(entry["title"]) + m.group(2),
+            rendered_html,
+            count=1,
+            flags=re.DOTALL,
+        )
 
         # Prepend YAML Frontmatter metadata banner for Agents and Skills
         if meta:
@@ -531,11 +691,18 @@ def build_docs_html(kit_dir: Path) -> Path:
             )
             fm_banner = (
                 f'<div class="frontmatter-card">'
-                f'<div class="frontmatter-header">Antigravity Discovery Frontmatter (YAML)</div>'
+                f'<div class="frontmatter-header">Discovery frontmatter (YAML)</div>'
                 f'<div class="frontmatter-body">{meta_rows}</div>'
                 f"</div>"
             )
-            rendered_html = fm_banner + "\n" + rendered_html
+            # Cards follow the page title so the h1 stays the first thing on screen.
+            cards = render_invoke_card(entry) + "\n" + fm_banner + "\n"
+            title_end = rendered_html.find("</h1>")
+            if title_end == -1:
+                rendered_html = cards + rendered_html
+            else:
+                split_at = title_end + len("</h1>")
+                rendered_html = rendered_html[:split_at] + "\n" + cards + rendered_html[split_at:]
 
         plain_text = re.sub(r"<[^>]+>", " ", rendered_html)
         plain_text = re.sub(r"\s+", " ", html.unescape(plain_text)).strip()
@@ -619,1206 +786,15 @@ def build_docs_html(kit_dir: Path) -> Path:
     build_timestamp = "kit v" + (version_file.read_text(encoding="utf-8").strip() if version_file.exists() else "dev")
     total_docs = len(pages_data)
 
-    docs_portal = f"""<!DOCTYPE html>
-<html lang="en" data-theme="dark">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PANTHEON AI Kit for Service Governance — Antigravity Local Docs</title>
-  <style>
-    :root[data-theme="dark"] {{
-      --bg-primary: #0d1117;
-      --bg-secondary: #161b22;
-      --bg-tertiary: #21262d;
-      --bg-elevated: #1c2128;
-      --border-color: #30363d;
-      --border-subtle: #21262d;
-      --text-primary: #e6edf3;
-      --text-secondary: #8b949e;
-      --text-muted: #6e7681;
-      --accent-primary: #58a6ff;
-      --accent-hover: #79c0ff;
-      --accent-subtle: rgba(56, 139, 253, 0.15);
-      --success-color: #3fb950;
-      --warning-color: #d29922;
-      --danger-color: #f85149;
-      --code-bg: #11161d;
-      --inline-code-bg: rgba(110, 118, 129, 0.25);
-      --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }}
-
-    :root[data-theme="light"] {{
-      --bg-primary: #ffffff;
-      --bg-secondary: #f6f8fa;
-      --bg-tertiary: #eaeef2;
-      --bg-elevated: #ffffff;
-      --border-color: #d0d7de;
-      --border-subtle: #eaeef2;
-      --text-primary: #1f2328;
-      --text-secondary: #57606a;
-      --text-muted: #6e7781;
-      --accent-primary: #0969da;
-      --accent-hover: #0550ae;
-      --accent-subtle: rgba(9, 105, 218, 0.1);
-      --success-color: #1a7f37;
-      --warning-color: #9a6700;
-      --danger-color: #cf222e;
-      --code-bg: #f6f8fa;
-      --inline-code-bg: rgba(175, 184, 193, 0.25);
-      --shadow-lg: 0 8px 24px rgba(140, 149, 159, 0.2);
-    }}
-
-    * {{
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }}
-
-    html, body {{
-      overflow-x: clip;
-      max-width: 100%;
-    }}
-
-    body {{
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-primary);
-      color: var(--text-primary);
-      line-height: 1.65;
-      font-size: 15px;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }}
-
-    /* Top Header Bar */
-    .top-navbar {{
-      position: sticky;
-      top: 0;
-      z-index: 150;
-      min-height: 60px;
-      background-color: var(--bg-secondary);
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 20px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }}
-
-    .brand-group {{
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-      flex: 1 1 auto;
-    }}
-
-    .mobile-menu-btn {{
-      display: none;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-tertiary);
-      color: var(--text-primary);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      flex-shrink: 0;
-    }}
-
-    .mobile-menu-btn:hover {{
-      border-color: var(--accent-primary);
-    }}
-
-    .brand-badge {{
-      background: linear-gradient(135deg, #238636, #1f6feb);
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 11.5px;
-      letter-spacing: 0.6px;
-      padding: 4px 9px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      flex-shrink: 0;
-    }}
-
-    .brand-title {{
-      font-size: 15.5px;
-      font-weight: 600;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }}
-
-    .brand-subtitle {{
-      font-size: 12px;
-      color: var(--text-secondary);
-      display: none;
-      white-space: nowrap;
-    }}
-
-    @media (min-width: 1240px) {{
-      .brand-subtitle {{
-        display: inline;
-      }}
-    }}
-
-    .header-controls {{
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-    }}
-
-    .search-wrapper {{
-      position: relative;
-      width: clamp(190px, 26vw, 320px);
-    }}
-
-    .search-input {{
-      width: 100%;
-      padding: 7px 12px 7px 32px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-primary);
-      color: var(--text-primary);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s;
-    }}
-
-    .search-input:focus {{
-      border-color: var(--accent-primary);
-    }}
-
-    .search-icon {{
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-      font-size: 13px;
-      pointer-events: none;
-    }}
-
-    .search-results-dropdown {{
-      position: absolute;
-      top: calc(100% + 6px);
-      right: 0;
-      width: min(460px, calc(100vw - 24px));
-      max-height: min(440px, 68vh);
-      overflow-y: auto;
-      background-color: var(--bg-elevated);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      box-shadow: var(--shadow-lg);
-      display: none;
-      z-index: 250;
-    }}
-
-    .search-results-dropdown.open {{
-      display: block;
-    }}
-
-    .search-hit {{
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 10px 14px;
-      background: none;
-      border: none;
-      border-bottom: 1px solid var(--border-subtle);
-      color: var(--text-primary);
-      cursor: pointer;
-    }}
-
-    .search-hit:hover {{
-      background-color: var(--accent-subtle);
-    }}
-
-    .search-hit-title {{
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent-primary);
-      margin-bottom: 2px;
-      overflow-wrap: break-word;
-    }}
-
-    .search-hit-snippet {{
-      font-size: 12px;
-      color: var(--text-secondary);
-      line-height: 1.4;
-      overflow-wrap: break-word;
-    }}
-
-    .theme-btn {{
-      padding: 6px 11px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-tertiary);
-      color: var(--text-primary);
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }}
-
-    .theme-btn:hover {{
-      border-color: var(--accent-primary);
-    }}
-
-    /* Mobile Backdrop Overlay for Drawer */
-    .sidebar-backdrop {{
-      display: none;
-      position: fixed;
-      inset: 0;
-      background-color: rgba(0, 0, 0, 0.55);
-      z-index: 290;
-      backdrop-filter: blur(2px);
-    }}
-
-    .sidebar-backdrop.open {{
-      display: block;
-    }}
-
-    /* 3-Column Docs Layout */
-    .docs-layout {{
-      display: grid;
-      grid-template-columns: 280px minmax(0, 1fr) 250px;
-      flex: 1;
-      max-width: 1680px;
-      width: 100%;
-      margin: 0 auto;
-    }}
-
-    /* Left Navigation Sidebar */
-    .left-sidebar {{
-      background-color: var(--bg-secondary);
-      border-right: 1px solid var(--border-color);
-      padding: 20px 14px;
-      height: calc(100vh - 60px);
-      position: sticky;
-      top: 60px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }}
-
-    .mobile-sidebar-header {{
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4px 8px 14px;
-      margin-bottom: 14px;
-      border-bottom: 1px solid var(--border-color);
-    }}
-
-    .mobile-sidebar-title {{
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-primary);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-    }}
-
-    .mobile-sidebar-close {{
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-tertiary);
-      color: var(--text-primary);
-      font-size: 12px;
-      cursor: pointer;
-    }}
-
-    .nav-category {{
-      margin-bottom: 20px;
-    }}
-
-    .nav-category-title {{
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--text-muted);
-      padding: 0 10px 6px;
-    }}
-
-    .nav-item {{
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      text-align: left;
-      padding: 8px 10px;
-      margin-bottom: 3px;
-      border-radius: 6px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text-secondary);
-      font-size: 13px;
-      cursor: pointer;
-      transition: all 0.12s ease;
-    }}
-
-    .nav-item:hover {{
-      background-color: var(--bg-tertiary);
-      color: var(--text-primary);
-    }}
-
-    .nav-item.active {{
-      background-color: var(--accent-subtle);
-      border-color: rgba(88, 166, 255, 0.35);
-      color: var(--accent-primary);
-      font-weight: 600;
-    }}
-
-    .nav-item-title {{
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }}
-
-    .nav-item-badge {{
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 10px;
-      background-color: var(--bg-tertiary);
-      color: var(--text-muted);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }}
-
-    .nav-item.active .nav-item-badge {{
-      background-color: var(--accent-primary);
-      color: #ffffff;
-    }}
-
-    /* Mobile / Tablet Collapsible On-This-Page TOC */
-    .mobile-toc {{
-      display: none;
-      background-color: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      margin-bottom: 20px;
-      overflow: hidden;
-    }}
-
-    .mobile-toc summary {{
-      padding: 10px 14px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--accent-primary);
-      cursor: pointer;
-      user-select: none;
-      list-style: none;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }}
-
-    .mobile-toc summary::-webkit-details-marker {{
-      display: none;
-    }}
-
-    .mobile-toc summary::after {{
-      content: "▾";
-      font-size: 12px;
-      color: var(--text-secondary);
-      transition: transform 0.15s ease;
-    }}
-
-    .mobile-toc[open] summary::after {{
-      transform: rotate(180deg);
-    }}
-
-    .mobile-toc-body {{
-      padding: 8px 14px 12px;
-      border-top: 1px solid var(--border-subtle);
-      max-height: 48vh;
-      overflow-y: auto;
-    }}
-
-    /* Center Content Area */
-    .content-pane {{
-      padding: 34px 44px 80px;
-      min-width: 0;
-      max-width: 100%;
-    }}
-
-    .docs-article.hidden {{
-      display: none;
-    }}
-
-    .article-meta-bar {{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding-bottom: 14px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--border-color);
-    }}
-
-    .meta-breadcrumbs {{
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
-      font-size: 13px;
-      min-width: 0;
-    }}
-
-    .meta-cat {{
-      color: var(--accent-primary);
-      font-weight: 600;
-    }}
-
-    .meta-sep {{
-      color: var(--text-muted);
-    }}
-
-    .meta-path {{
-      background-color: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-      font-size: 12px;
-      color: var(--text-secondary);
-      word-break: break-all;
-    }}
-
-    .meta-stats {{
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }}
-
-    .stat-pill {{
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      background-color: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      color: var(--text-secondary);
-      white-space: nowrap;
-    }}
-
-    .article-lead {{
-      font-size: 14px;
-      color: var(--text-secondary);
-      background-color: var(--bg-secondary);
-      border-left: 3px solid var(--accent-primary);
-      padding: 10px 14px;
-      border-radius: 0 6px 6px 0;
-      margin-bottom: 24px;
-      overflow-wrap: break-word;
-    }}
-
-    /* YAML Frontmatter Card */
-    .frontmatter-card {{
-      background-color: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      margin-bottom: 24px;
-      overflow: hidden;
-    }}
-
-    .frontmatter-header {{
-      background-color: var(--bg-tertiary);
-      padding: 6px 14px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--border-color);
-    }}
-
-    .frontmatter-body {{
-      padding: 12px 14px;
-      font-size: 13px;
-      overflow-wrap: break-word;
-      word-break: break-word;
-    }}
-
-    .fm-item {{
-      margin-bottom: 4px;
-    }}
-
-    .fm-key {{
-      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-      font-weight: 600;
-      color: var(--accent-primary);
-    }}
-
-    .fm-val {{
-      color: var(--text-primary);
-    }}
-
-    /* Typography */
-    .doc-heading {{
-      color: var(--text-primary);
-      font-weight: 600;
-      line-height: 1.3;
-      scroll-margin-top: 86px;
-      overflow-wrap: break-word;
-    }}
-
-    .doc-h1 {{
-      font-size: 26px;
-      margin: 8px 0 18px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border-color);
-    }}
-
-    .doc-h2 {{
-      font-size: 20px;
-      margin: 32px 0 14px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-subtle);
-    }}
-
-    .doc-h3 {{
-      font-size: 16.5px;
-      margin: 22px 0 10px;
-      color: var(--accent-hover);
-    }}
-
-    .doc-h4, .doc-h5, .doc-h6 {{
-      font-size: 15px;
-      margin: 18px 0 8px;
-    }}
-
-    .heading-anchor {{
-      margin-left: 8px;
-      color: var(--text-muted);
-      text-decoration: none;
-      opacity: 0;
-      font-weight: 400;
-      transition: opacity 0.15s;
-    }}
-
-    .doc-heading:hover .heading-anchor {{
-      opacity: 1;
-    }}
-
-    .docs-para {{
-      margin-bottom: 14px;
-      color: var(--text-primary);
-      overflow-wrap: break-word;
-      word-break: break-word;
-    }}
-
-    .docs-list {{
-      margin: 0 0 16px 22px;
-    }}
-
-    .docs-list li {{
-      margin-bottom: 6px;
-      overflow-wrap: break-word;
-      word-break: break-word;
-    }}
-
-    .docs-list li.nested-list-item {{
-      margin-left: 18px;
-      list-style-type: circle;
-    }}
-
-    .section-divider {{
-      border: 0;
-      border-top: 1px solid var(--border-color);
-      margin: 28px 0;
-    }}
-
-    a {{
-      color: var(--accent-primary);
-      text-decoration: none;
-      overflow-wrap: break-word;
-    }}
-
-    a:hover {{
-      text-decoration: underline;
-    }}
-
-    .inline-code {{
-      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-      font-size: 0.88em;
-      background-color: var(--inline-code-bg);
-      padding: 2px 6px;
-      border-radius: 4px;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }}
-
-    /* Code Blocks */
-    .code-block-wrapper {{
-      margin: 16px 0 22px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      overflow: hidden;
-      background-color: var(--code-bg);
-      max-width: 100%;
-    }}
-
-    .code-block-header {{
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 14px;
-      background-color: var(--bg-secondary);
-      border-bottom: 1px solid var(--border-color);
-    }}
-
-    .code-lang {{
-      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      letter-spacing: 0.5px;
-    }}
-
-    .copy-btn {{
-      background-color: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      font-size: 11px;
-      padding: 3px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-    }}
-
-    .copy-btn:hover {{
-      border-color: var(--accent-primary);
-    }}
-
-    .code-pre {{
-      padding: 14px 16px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      white-space: pre;
-      word-wrap: normal;
-      overflow-wrap: normal;
-      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--text-primary);
-      max-width: 100%;
-    }}
-
-    /* Tables */
-    .table-responsive {{
-      width: 100%;
-      max-width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      margin: 16px 0 24px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-    }}
-
-    .docs-table {{
-      width: 100%;
-      min-width: 520px;
-      border-collapse: collapse;
-      font-size: 13.5px;
-    }}
-
-    .docs-table th {{
-      background-color: var(--bg-secondary);
-      color: var(--text-primary);
-      font-weight: 600;
-      text-align: left;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-color);
-    }}
-
-    .docs-table td {{
-      padding: 9px 14px;
-      border-bottom: 1px solid var(--border-subtle);
-      vertical-align: top;
-      overflow-wrap: break-word;
-    }}
-
-    .docs-table tr:last-child td {{
-      border-bottom: none;
-    }}
-
-    .docs-table tr:hover td {{
-      background-color: var(--bg-secondary);
-    }}
-
-    /* Callouts & Blockquotes */
-    .docs-quote {{
-      margin: 16px 0;
-      padding: 12px 16px;
-      border-left: 4px solid var(--border-color);
-      background-color: var(--bg-secondary);
-      color: var(--text-secondary);
-      border-radius: 0 6px 6px 0;
-      overflow-wrap: break-word;
-    }}
-
-    .callout {{
-      margin: 18px 0;
-      padding: 14px 16px;
-      border-left: 4px solid var(--accent-primary);
-      background-color: var(--bg-secondary);
-      border-radius: 0 8px 8px 0;
-      overflow-wrap: break-word;
-    }}
-
-    .callout-title {{
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.6px;
-      margin-bottom: 6px;
-      color: var(--accent-primary);
-    }}
-
-    .callout-important, .callout-warning {{
-      border-left-color: var(--warning-color);
-    }}
-    .callout-important .callout-title, .callout-warning .callout-title {{
-      color: var(--warning-color);
-    }}
-
-    .callout-caution {{
-      border-left-color: var(--danger-color);
-    }}
-    .callout-caution .callout-title {{
-      color: var(--danger-color);
-    }}
-
-    .callout-tip {{
-      border-left-color: var(--success-color);
-    }}
-    .callout-tip .callout-title {{
-      color: var(--success-color);
-    }}
-
-    /* Right Table of Contents Sidebar */
-    .toc-sidebar {{
-      padding: 24px 16px;
-      height: calc(100vh - 60px);
-      position: sticky;
-      top: 60px;
-      overflow-y: auto;
-      border-left: 1px solid var(--border-subtle);
-    }}
-
-    .toc-header {{
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--text-muted);
-      margin-bottom: 10px;
-    }}
-
-    .toc-link {{
-      display: block;
-      font-size: 12.5px;
-      color: var(--text-secondary);
-      padding: 4px 0 4px 10px;
-      border-left: 2px solid var(--border-subtle);
-      text-decoration: none;
-      line-height: 1.35;
-      overflow-wrap: break-word;
-    }}
-
-    .toc-link:hover {{
-      color: var(--accent-primary);
-      text-decoration: none;
-    }}
-
-    .toc-link.toc-level-3 {{
-      padding-left: 22px;
-      font-size: 12px;
-    }}
-
-    .docs-footer {{
-      margin-top: 48px;
-      padding-top: 18px;
-      border-top: 1px solid var(--border-color);
-      font-size: 12px;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 8px;
-    }}
-
-    /* Responsive Breakpoints */
-    @media (max-width: 1240px) {{
-      .docs-layout {{
-        grid-template-columns: 260px minmax(0, 1fr);
-      }}
-      .toc-sidebar {{
-        display: none;
-      }}
-      .mobile-toc {{
-        display: block;
-      }}
-    }}
-
-    @media (max-width: 960px) {{
-      .mobile-menu-btn {{
-        display: inline-flex;
-      }}
-      .docs-layout {{
-        grid-template-columns: minmax(0, 1fr);
-      }}
-      .left-sidebar {{
-        position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: min(310px, 86vw);
-        height: 100vh;
-        z-index: 300;
-        transform: translateX(-105%);
-        transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: var(--shadow-lg);
-      }}
-      .left-sidebar.open {{
-        transform: translateX(0);
-      }}
-      .mobile-sidebar-header {{
-        display: flex;
-      }}
-      .content-pane {{
-        padding: 24px 22px 64px;
-      }}
-    }}
-
-    @media (max-width: 680px) {{
-      .top-navbar {{
-        padding: 8px 12px;
-        gap: 8px;
-      }}
-      .brand-title {{
-        font-size: 14px;
-      }}
-      .header-controls {{
-        width: 100%;
-        order: 3;
-      }}
-      .search-wrapper {{
-        flex: 1 1 auto;
-        width: 100%;
-      }}
-      .search-results-dropdown {{
-        left: 0;
-        right: 0;
-        width: 100%;
-      }}
-      .content-pane {{
-        padding: 16px 14px 48px;
-      }}
-      .doc-heading {{
-        scroll-margin-top: 112px;
-      }}
-      .doc-h1 {{
-        font-size: 21px;
-        margin: 4px 0 14px;
-      }}
-      .doc-h2 {{
-        font-size: 17.5px;
-        margin: 24px 0 10px;
-      }}
-      .doc-h3 {{
-        font-size: 15px;
-      }}
-      body {{
-        font-size: 14.5px;
-      }}
-      .code-pre {{
-        font-size: 12px;
-        padding: 10px 12px;
-      }}
-      .docs-table {{
-        font-size: 12.5px;
-      }}
-      .docs-table th, .docs-table td {{
-        padding: 8px 10px;
-      }}
-    }}
-
-    @media print {{
-      .top-navbar, .left-sidebar, .toc-sidebar, .mobile-toc, .sidebar-backdrop, .copy-btn {{
-        display: none !important;
-      }}
-      .docs-layout {{
-        display: block;
-      }}
-      .content-pane {{
-        padding: 0;
-      }}
-    }}
-  </style>
-</head>
-<body>
-  <header class="top-navbar">
-    <div class="brand-group">
-      <button type="button" class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle documentation menu">
-        &#9776; <span>Docs</span>
-      </button>
-      <span class="brand-badge">PANTHEON AI</span>
-      <span class="brand-title">Service Governance &amp; Hardening Kit</span>
-      <span class="brand-subtitle">— Offline Local Documentation Portal ({total_docs} Modules)</span>
-    </div>
-    <button type="button" class="theme-btn" id="theme-toggle-btn" onclick="toggleTheme()">
-      Light / Dark
-    </button>
-    <div class="header-controls">
-      <div class="search-wrapper">
-        <span class="search-icon">&#128269;</span>
-        <input
-          type="search"
-          id="docs-search-input"
-          class="search-input"
-          placeholder="Search all {total_docs} kit docs (Press / to focus)..."
-          autocomplete="off"
-        />
-        <div id="search-results" class="search-results-dropdown"></div>
-      </div>
-    </div>
-  </header>
-
-  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
-
-  <div class="docs-layout">
-    <aside class="left-sidebar" id="left-sidebar" aria-label="Documentation Navigation">
-      <div class="mobile-sidebar-header">
-        <span class="mobile-sidebar-title">Documentation ({total_docs})</span>
-        <button type="button" class="mobile-sidebar-close" onclick="closeMobileSidebar()">&#10005; Close</button>
-      </div>
-      {"".join(sidebar_nav_html)}
-    </aside>
-
-    <main class="content-pane" id="main-content">
-      <details class="mobile-toc" id="mobile-toc-details">
-        <summary>On This Page (Section Jump)</summary>
-        <nav class="mobile-toc-body" id="mobile-toc-container"></nav>
-      </details>
-      {"".join(articles_html)}
-      <footer class="docs-footer">
-        <span>PANTHEON AI Agent and Skills Setup Kit for Service Governance (ITIL 4 &amp; ITIL 5, NIST, NCSC / Cyber Essentials Plus, UKFS-01..06)</span>
-        <span>Compiled from live Markdown sources ({build_timestamp}) via <code>python build_docs.py</code></span>
-      </footer>
-    </main>
-
-    <aside class="toc-sidebar" aria-label="On This Page">
-      <div class="toc-header">On This Page</div>
-      <nav id="toc-container"></nav>
-    </aside>
-  </div>
-
-  <script>
-    const DOCS_INDEX = {index_json};
-    let currentPageId = "{default_page_id}";
-
-    function toggleMobileSidebar() {{
-      const sb = document.getElementById("left-sidebar");
-      const bd = document.getElementById("sidebar-backdrop");
-      if (!sb || !bd) return;
-      const isOpen = sb.classList.toggle("open");
-      bd.classList.toggle("open", isOpen);
-    }}
-
-    function closeMobileSidebar() {{
-      const sb = document.getElementById("left-sidebar");
-      const bd = document.getElementById("sidebar-backdrop");
-      if (sb) sb.classList.remove("open");
-      if (bd) bd.classList.remove("open");
-    }}
-
-    function renderToc(pageId) {{
-      const tocContainer = document.getElementById("toc-container");
-      const mobileTocContainer = document.getElementById("mobile-toc-container");
-      const mobileTocDetails = document.getElementById("mobile-toc-details");
-      const pageObj = DOCS_INDEX.find(p => p.id === pageId);
-      if (!pageObj || !pageObj.toc || pageObj.toc.length === 0) {{
-        const emptyHtml = '<span style="font-size:12px;color:var(--text-muted);">No subsections</span>';
-        if (tocContainer) tocContainer.innerHTML = emptyHtml;
-        if (mobileTocContainer) mobileTocContainer.innerHTML = emptyHtml;
-        if (mobileTocDetails) mobileTocDetails.open = false;
-        return;
-      }}
-      const linksHtml = pageObj.toc.map(item => {{
-        const cls = item.level === 3 ? "toc-link toc-level-3" : "toc-link";
-        const safeTitle = item.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        return `<a href="#${{item.id}}" class="${{cls}}" onclick="closeMobileToc()">${{safeTitle}}</a>`;
-      }}).join("");
-      if (tocContainer) tocContainer.innerHTML = linksHtml;
-      if (mobileTocContainer) mobileTocContainer.innerHTML = linksHtml;
-      if (mobileTocDetails) mobileTocDetails.open = false;
-    }}
-
-    function closeMobileToc() {{
-      const mobileTocDetails = document.getElementById("mobile-toc-details");
-      if (mobileTocDetails) mobileTocDetails.open = false;
-    }}
-
-    function navigateToPage(pageId, scrollTargetId) {{
-      const targetArticle = document.getElementById("page-" + pageId);
-      if (!targetArticle) return;
-
-      closeMobileSidebar();
-
-      document.querySelectorAll(".docs-article").forEach(el => el.classList.add("hidden"));
-      targetArticle.classList.remove("hidden");
-
-      document.querySelectorAll(".nav-item").forEach(btn => btn.classList.remove("active"));
-      const activeBtn = document.getElementById("nav-" + pageId);
-      if (activeBtn) activeBtn.classList.add("active");
-
-      currentPageId = pageId;
-      renderToc(pageId);
-
-      if (scrollTargetId) {{
-        const anchorEl = document.getElementById(scrollTargetId) || document.getElementById(scrollTargetId.replace(/-+/g, "-"));
-        if (anchorEl) {{
-          anchorEl.scrollIntoView({{ behavior: "smooth" }});
-          history.replaceState(null, "", "#" + anchorEl.id);
-          return;
-        }}
-      }}
-      window.scrollTo({{ top: 0, behavior: "instant" }});
-      history.replaceState(null, "", "#" + pageId);
-    }}
-
-    function navigateToHash(hashValue) {{
-      const cleanHash = (hashValue || "").replace(/^#/, "");
-      if (!cleanHash) return;
-      const directPage = DOCS_INDEX.find(p => p.id === cleanHash);
-      if (directPage) {{
-        navigateToPage(directPage.id);
-        return;
-      }}
-      for (const p of DOCS_INDEX) {{
-        if (cleanHash.startsWith(p.id + "-")) {{
-          navigateToPage(p.id, cleanHash);
-          return;
-        }}
-      }}
-      const existingEl = document.getElementById(cleanHash);
-      if (existingEl) {{
-        existingEl.scrollIntoView({{ behavior: "smooth" }});
-      }}
-    }}
-
-    function copyCodeBlock(btn) {{
-      const wrapper = btn.closest(".code-block-wrapper");
-      if (!wrapper) return;
-      const codeEl = wrapper.querySelector("code");
-      if (!codeEl) return;
-      navigator.clipboard.writeText(codeEl.innerText).then(() => {{
-        const orig = btn.innerText;
-        btn.innerText = "Copied!";
-        setTimeout(() => {{ btn.innerText = orig; }}, 1500);
-      }});
-    }}
-
-    function toggleTheme() {{
-      const root = document.documentElement;
-      const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      root.setAttribute("data-theme", next);
-      try {{ localStorage.setItem("agy_docs_theme", next); }} catch (e) {{}}
-    }}
-
-    // Full-text instant search
-    const searchInput = document.getElementById("docs-search-input");
-    const searchDropdown = document.getElementById("search-results");
-
-    if (searchInput && searchDropdown) {{
-      searchInput.addEventListener("input", () => {{
-        const q = searchInput.value.trim().toLowerCase();
-        if (q.length < 2) {{
-          searchDropdown.classList.remove("open");
-          searchDropdown.innerHTML = "";
-          return;
-        }}
-
-        const hits = [];
-        for (const page of DOCS_INDEX) {{
-          const hay = (page.title + " " + page.search_text).toLowerCase();
-          const idx = hay.indexOf(q);
-          if (idx !== -1) {{
-            const start = Math.max(0, idx - 45);
-            const snippet = page.search_text.substring(start, start + 140);
-            hits.push({{ page, snippet }});
-          }}
-        }}
-
-        if (hits.length === 0) {{
-          searchDropdown.innerHTML = '<div class="search-hit"><div class="search-hit-snippet">No matching documents found.</div></div>';
-        }} else {{
-          searchDropdown.innerHTML = hits.slice(0, 10).map(h => `
-            <button type="button" class="search-hit" onclick="selectSearchResult('${{h.page.id}}')">
-              <div class="search-hit-title">${{h.page.title}} <span style="color:var(--text-muted);font-weight:400;">(${{h.page.path}})</span></div>
-              <div class="search-hit-snippet">...${{h.snippet.replace(/</g, "&lt;")}}...</div>
-            </button>
-          `).join("");
-        }}
-        searchDropdown.classList.add("open");
-      }});
-
-      document.addEventListener("click", (e) => {{
-        if (!e.target.closest(".search-wrapper")) {{
-          searchDropdown.classList.remove("open");
-        }}
-      }});
-
-      document.addEventListener("keydown", (e) => {{
-        if (e.key === "/" && document.activeElement !== searchInput) {{
-          e.preventDefault();
-          searchInput.focus();
-        }} else if (e.key === "Escape") {{
-          searchDropdown.classList.remove("open");
-          closeMobileSidebar();
-        }}
-      }});
-    }}
-
-    function selectSearchResult(pageId) {{
-      searchDropdown.classList.remove("open");
-      navigateToPage(pageId);
-    }}
-
-    window.addEventListener("hashchange", () => {{
-      const hash = window.location.hash.replace(/^#/, "");
-      if (hash) navigateToHash(hash);
-    }});
-
-    // Initialize theme & initial URL hash
-    (function init() {{
-      try {{
-        const savedTheme = localStorage.getItem("agy_docs_theme");
-        if (savedTheme === "light" || savedTheme === "dark") {{
-          document.documentElement.setAttribute("data-theme", savedTheme);
-        }}
-      }} catch (e) {{}}
-
-      const hash = window.location.hash.replace(/^#/, "");
-      if (hash) {{
-        navigateToHash(hash);
-        return;
-      }}
-      renderToc(currentPageId);
-    }})();
-  </script>
-</body>
-</html>
-"""
+    docs_portal = render_portal(
+        total_docs=total_docs,
+        sidebar_nav="".join(sidebar_nav_html),
+        articles="".join(articles_html),
+        build_label=build_timestamp,
+        index_json=index_json,
+        default_page_id=default_page_id,
+        home=render_home(pages_data),
+    )
 
     output_path = kit_dir / "ANTIGRAVITY_DOCS.html"
     output_path.write_text(docs_portal, encoding="utf-8")

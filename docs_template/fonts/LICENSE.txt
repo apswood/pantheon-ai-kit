@@ -1,0 +1,8 @@
+IBM Plex Sans and IBM Plex Mono
+Copyright (c) 2017 IBM Corp. with Reserved Font Name "Plex".
+
+These font files are licensed under the SIL Open Font License, Version 1.1.
+Full text: https://openfontlicense.org/open-font-license-official-text/
+
+The woff2 files here are the Latin subsets served by Google Fonts, embedded into
+ANTIGRAVITY_DOCS.html by build_docs.py so the documentation portal works offline.

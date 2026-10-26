@@ -5,7 +5,10 @@
 - `.agents/` is the source of truth for agents, skills and rules. **Never hand-edit `.claude/`**; it is generated.
 - `GEMINI.md` must stay under 24,000 bytes (the validator warns at 19,200).
 - No real secrets, tenant IDs, customer names or internal hostnames anywhere. Use `<REDACTED>` or placeholders.
-- Edit the `build_docs.py` template, never `ANTIGRAVITY_DOCS.html` directly.
+- Never edit `ANTIGRAVITY_DOCS.html` directly. Portal markup, styles and scripts live in `docs_template/`
+  (`portal.html`, `portal.css`, `portal.js`; IBM Plex fonts in `docs_template/fonts/` are embedded as base64 so the
+  portal works offline). Content rendering lives in `build_docs.py`. The build must stay deterministic: no clocks,
+  random values or environment-dependent output.
 
 ## Regenerate in this order
 

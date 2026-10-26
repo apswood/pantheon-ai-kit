@@ -16,7 +16,7 @@ First tagged release.
 - Validator: prose file-count check, warning at 80% of the `GEMINI.md` size budget.
 
 ### Changed
-- Canonical file list grows from 24 to 37 files.
+- Canonical file list grows from 24 to 43 files (Claude Code mirror, CLAUDE.md, docs template and embedded fonts).
 - `build_docs.py` stamps the kit version instead of the wall-clock time, so the HTML is reproducible.
 - The leak scanner skips tool caches (`.pytest_cache`, `.ruff_cache`, `.mypy_cache`, `node_modules`).
 

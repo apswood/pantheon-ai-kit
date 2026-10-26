@@ -51,7 +51,7 @@ PROSE_COUNT_RE = re.compile(r"\b(\d+)\s+(?:canonical(?:\s+kit)?\s+files?|kit\s+f
 # Directories never scanned: VCS metadata, virtual environments and tool caches (the latter can echo test data).
 SCAN_SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "node_modules"}
 
-# Expected Kit Files Relative to Kit Root (All 37 canonical files)
+# Expected Kit Files Relative to Kit Root (All 43 canonical files)
 EXPECTED_FILES = [
     "README.md",
     "ANTIGRAVITY_SETUP_GUIDE.md",
@@ -90,6 +90,12 @@ EXPECTED_FILES = [
     ".claude/skills/teams-standup-digest-notifier/SKILL.md",
     ".claude/skills/ticket-backlog-governance/SKILL.md",
     ".claude/rules/sage-governance-prompt.md",
+    "docs_template/portal.html",
+    "docs_template/portal.css",
+    "docs_template/portal.js",
+    "docs_template/fonts/IBMPlexSans-var.woff2",
+    "docs_template/fonts/IBMPlexMono-400.woff2",
+    "docs_template/fonts/LICENSE.txt",
 ]
 
 # Upstream Generic Credential & Secret Leak Patterns (Zero reversible company/personal text in upstream repo)

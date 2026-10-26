@@ -126,6 +126,12 @@ except Exception:
         ".claude/skills/teams-standup-digest-notifier/SKILL.md",
         ".claude/skills/ticket-backlog-governance/SKILL.md",
         ".claude/rules/sage-governance-prompt.md",
+        "docs_template/portal.html",
+        "docs_template/portal.css",
+        "docs_template/portal.js",
+        "docs_template/fonts/IBMPlexSans-var.woff2",
+        "docs_template/fonts/IBMPlexMono-400.woff2",
+        "docs_template/fonts/LICENSE.txt",
     ]
 
 
@@ -507,6 +513,8 @@ def plan_uninstallation(
         target_dir / ".agents" / "agents",
         target_dir / ".agents" / "skills",
         target_dir / ".agents",
+        target_dir / "docs_template" / "fonts",
+        target_dir / "docs_template",
         target_dir / ".claude" / "skills" / "infrastructure-best-practice-analyser",
         target_dir / ".claude" / "skills" / "ticket-backlog-governance",
         target_dir / ".claude" / "skills" / "productivity-workload-governance",

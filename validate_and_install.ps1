@@ -4,7 +4,7 @@
 .DESCRIPTION
     Supports single-command remote bootstrap directly from GitHub via:
         irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
-    If run in a directory where the 37 canonical kit files are not yet present, automatically downloads
+    If run in a directory where the 43 canonical kit files are not yet present, automatically downloads
     and extracts the kit components (validate_and_install.ps1, setup.py, agents, skills, rules, and docs)
     from https://github.com/apswood/pantheon-ai-kit, initializes .env from .env.template, offers the
     optional custom keyword leak scanner builder (.custom_blocklist.json, protected by .gitignore),
@@ -140,7 +140,13 @@ $RequiredFiles = @(
     ".claude/skills/support-team-governance-analytics-coaching/SKILL.md",
     ".claude/skills/teams-standup-digest-notifier/SKILL.md",
     ".claude/skills/ticket-backlog-governance/SKILL.md",
-    ".claude/rules/sage-governance-prompt.md"
+    ".claude/rules/sage-governance-prompt.md",
+    "docs_template/portal.html",
+    "docs_template/portal.css",
+    "docs_template/portal.js",
+    "docs_template/fonts/IBMPlexSans-var.woff2",
+    "docs_template/fonts/IBMPlexMono-400.woff2",
+    "docs_template/fonts/LICENSE.txt"
 )
 
 $CustomBlocklistFileName = ".custom_blocklist.json"
@@ -189,11 +195,13 @@ function Test-KitFilesPresent ([string]$DirPath) {
 
 function Get-NormalizedSha256 ([string]$FilePath) {
     # Hash LF-normalised bytes so CRLF checkouts match the manifest generated on any platform.
+    # Latin-1 maps bytes 1:1 to chars, so this is exact for binary files (fonts) as well as text.
+    $latin1 = [System.Text.Encoding]::GetEncoding(28591)
     $bytes = [System.IO.File]::ReadAllBytes($FilePath)
-    $text = [System.Text.Encoding]::UTF8.GetString($bytes).Replace("`r`n", "`n")
+    $text = $latin1.GetString($bytes).Replace("`r`n", "`n")
     $sha = [System.Security.Cryptography.SHA256]::Create()
     try {
-        $hash = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text))
+        $hash = $sha.ComputeHash($latin1.GetBytes($text))
     } finally { $sha.Dispose() }
     return (($hash | ForEach-Object { $_.ToString("x2") }) -join "")
 }
@@ -482,6 +490,8 @@ function Invoke-KitUninstallation {
         ".agents/agents",
         ".agents/skills",
         ".agents",
+        "docs_template/fonts",
+        "docs_template",
         ".claude/skills/infrastructure-best-practice-analyser",
         ".claude/skills/ticket-backlog-governance",
         ".claude/skills/productivity-workload-governance",
@@ -681,7 +691,7 @@ if (Test-Path -LiteralPath $LocalBlocklistPath) {
 
 $Issues = [System.Collections.Generic.List[string]]::new()
 
-# STAGE 1: File Existence and Byte Limit Check (37 canonical files)
+# STAGE 1: File Existence and Byte Limit Check (43 canonical files)
 Write-Host "[STAGE 1/4] Checking canonical file structure and byte limits..." -ForegroundColor Yellow
 
 foreach ($relPath in $RequiredFiles) {

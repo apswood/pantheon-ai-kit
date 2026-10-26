@@ -1,0 +1,2 @@
+# Binary assets must never be line-ending converted (their SHA-256 is verified by the installers).
+*.woff2 -text

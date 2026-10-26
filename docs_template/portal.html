@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-tool="antigravity">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>PANTHEON AI Kit - Service Governance Docs</title>
+  <script>
+    /* Runs before first paint: restore theme and tool, and mark that scripting is available. */
+    (function () {
+      var root = document.documentElement;
+      root.classList.add("js");
+      try {
+        var theme = localStorage.getItem("agy_docs_theme");
+        if (theme !== "light" && theme !== "dark") {
+          theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        root.setAttribute("data-theme", theme);
+        var tool = localStorage.getItem("pantheon_docs_tool");
+        if (tool === "antigravity" || tool === "claude") root.setAttribute("data-tool", tool);
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+@@CSS@@
+  </style>
+</head>
+<body class="is-home">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="topbar">
+    <button type="button" class="menu-btn" id="menu-btn" onclick="toggleMobileSidebar()" aria-controls="left-sidebar" aria-expanded="false">Menu</button>
+    <a class="wordmark" href="#readme" onclick="navigateToPage('readme'); return false;">PANTHEON <span>Docs</span></a>
+    <button type="button" class="search-toggle" onclick="toggleSearchRow()">Search</button>
+    <div class="search-wrapper">
+      <input
+        type="search"
+        id="docs-search-input"
+        class="search-input"
+        placeholder="Search all @@TOTAL_DOCS@@ docs"
+        aria-label="Search the documentation"
+        autocomplete="off"
+      />
+      <span class="search-hint" aria-hidden="true">/</span>
+      <div id="search-results" class="search-results-dropdown" role="listbox"></div>
+    </div>
+    <button type="button" class="theme-btn" id="theme-toggle-btn" onclick="toggleTheme()">Theme</button>
+  </header>
+
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
+  <div class="frame">
+    <aside class="left-sidebar" id="left-sidebar" aria-label="Documentation navigation">
+      <div class="mobile-sidebar-header">
+        <span class="mobile-sidebar-title">Documentation</span>
+        <button type="button" class="mobile-sidebar-close" onclick="closeMobileSidebar()">Close</button>
+      </div>
+      <div class="tool-switch">
+        <span class="tool-switch-label" id="tool-switch-label">Show docs for</span>
+        <div class="seg" role="group" aria-labelledby="tool-switch-label">
+          <button type="button" data-set-tool="antigravity" aria-pressed="true">Antigravity</button>
+          <button type="button" data-set-tool="claude" aria-pressed="false">Claude Code</button>
+        </div>
+      </div>
+      @@SIDEBAR_NAV@@
+    </aside>
+
+    <div class="sheet">
+      @@HOME@@
+
+      <main class="content-pane" id="main-content">
+        <details class="mobile-toc" id="mobile-toc-details">
+          <summary>On this page</summary>
+          <nav class="mobile-toc-body" id="mobile-toc-container" aria-label="On this page"></nav>
+        </details>
+        @@ARTICLES@@
+        <footer class="docs-footer">
+          <p>PANTHEON AI Agent and Skills Setup Kit for Service Governance. ITIL 4 and 5, NIST, NCSC and Cyber Essentials Plus, UKFS-01..06.</p>
+          <p>Compiled from the Markdown sources (@@BUILD_LABEL@@) with <code>python build_docs.py</code>.</p>
+        </footer>
+      </main>
+
+      <aside class="toc-sidebar" aria-label="On this page">
+        <div class="toc-header">On this page</div>
+        <nav id="toc-container"></nav>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+@@JS@@
+  </script>
+</body>
+</html>
