@@ -1,0 +1,13 @@
+number,sys_class_name,short_description,assigned_to,squad,state,priority,escalation,sys_created_on,sys_updated_on,u_date_required
+INC0000101,incident,VPN tunnel to branch A flapping,Engineer A,Network,In Progress,2,0,2026-10-23 09:10:00,2026-10-23 10:05:00,
+INC0000102,incident,Core switch high CPU alarm,Engineer B,Network,Open,1,1,2026-10-20 08:30:00,2026-10-21 11:00:00,
+INC0000103,incident,Printer queue stuck for finance floor,Engineer C,Service Desk,Pending Customer,4,0,2026-10-14 14:00:00,2026-10-16 09:30:00,2026-11-02
+INC0000104,incident,Intermittent Wi-Fi drops in meeting rooms,Engineer A,Network,In Progress,3,0,2026-09-28 10:00:00,2026-10-09 15:45:00,
+INC0000105,incident,Backup job failed on file server,Engineer D,Infrastructure,Open,2,0,2026-10-26 08:50:00,2026-10-26 08:50:00,
+RITM0000201,sc_req_item,New starter laptop build,Engineer C,Service Desk,In Progress,4,0,2026-10-19 09:00:00,2026-10-22 16:20:00,
+RITM0000202,sc_req_item,Firewall rule request for supplier SFTP,Engineer B,Network,Pending Vendor,3,0,2026-10-05 11:15:00,2026-10-12 10:00:00,2026-10-30
+RITM0000203,sc_req_item,Mailbox permission change,Engineer D,Infrastructure,Open,4,0,2026-10-23 13:40:00,2026-10-23 13:40:00,
+RITM0000204,sc_req_item,Software licence renewal,Engineer A,Service Desk,Awaiting Approval,5,0,2026-09-15 09:25:00,2026-10-01 12:00:00,
+PRB0000301,problem,Recurring DNS timeouts on site B,Engineer B,Infrastructure,Root Cause Analysis,3,0,2026-09-10 10:00:00,2026-10-19 09:00:00,
+CTASK0000401,change_task,Apply firmware 7.2.8 to branch firewalls,Engineer D,Network,Scheduled,3,0,2026-10-22 08:00:00,2026-10-22 08:30:00,2026-10-29
+SCTASK0000501,sc_task,Install CAD software on workstation,Engineer C,Service Desk,Open,4,0,2026-10-21 15:00:00,2026-10-23 09:15:00,

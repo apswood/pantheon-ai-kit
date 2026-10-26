@@ -177,3 +177,5 @@ Detailed architectural guidance, first-principles explanations for Systems Engin
 ## 5. De-Identification Guarantee & Maintenance
 
 This repository contains **zero** proprietary organization identifiers, tenant GUIDs, internal employee names, or live credentials. All configuration is handled via `.env.template` placeholders (`<YOUR_VALUE>`), and every change is verified against `validate_kit.py` and `validate_and_install.ps1` (Exit Code `0`).
+
+Contributing, security and release notes: [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md) · [`CHANGELOG.md`](CHANGELOG.md). Try the agents and skills on synthetic data in [`examples/`](examples/README.md).
