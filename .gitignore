@@ -116,6 +116,11 @@ htmlcov/
 .gemini/antigravity/transcript.jsonl
 .gemini/antigravity/artifacts/
 
+# Claude Code: TRACK generated .claude/agents, .claude/skills, .claude/rules; IGNORE personal/local state.
+.claude/settings.local.json
+.claude/agent-memory-local/
+CLAUDE.local.md
+
 # -------------------------------------------------------------------------
 # 8. Operating System Metadata
 # -------------------------------------------------------------------------

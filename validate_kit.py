@@ -32,7 +32,7 @@ RESET = "\033[0m"
 
 CUSTOM_BLOCKLIST_FILENAME = ".custom_blocklist.json"
 
-# Expected Kit Files Relative to Kit Root (All 24 canonical files)
+# Expected Kit Files Relative to Kit Root (All 37 canonical files)
 EXPECTED_FILES = [
     "README.md",
     "ANTIGRAVITY_SETUP_GUIDE.md",
@@ -58,6 +58,19 @@ EXPECTED_FILES = [
     "Governance_Framework/AEGIS_Agent_System_Prompt.md",
     "Governance_Framework/SAGE_Agent_System_Prompt.md",
     ".agents/rules/sage-governance-prompt.md",
+    "CLAUDE.md",
+    ".claude/agents/aegis_best_practice.md",
+    ".claude/agents/atlas_architecture.md",
+    ".claude/agents/sage_governance.md",
+    ".claude/agents/sentinel_security.md",
+    ".claude/agents/spark_disruptor.md",
+    ".claude/skills/infrastructure-best-practice-analyser/SKILL.md",
+    ".claude/skills/productivity-workload-governance/SKILL.md",
+    ".claude/skills/quality-audit-governance/SKILL.md",
+    ".claude/skills/support-team-governance-analytics-coaching/SKILL.md",
+    ".claude/skills/teams-standup-digest-notifier/SKILL.md",
+    ".claude/skills/ticket-backlog-governance/SKILL.md",
+    ".claude/rules/sage-governance-prompt.md",
 ]
 
 # Upstream Generic Credential & Secret Leak Patterns (Zero reversible company/personal text in upstream repo)

@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consistency:
+    name: Generated files are current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Claude Code mirror matches .agents/ sources
+        run: python tools/sync_claude.py --check
+
+      - name: HTML docs match a fresh build
+        run: |
+          python build_docs.py
+          git diff --exit-code -- ANTIGRAVITY_DOCS.html || {
+            echo "::error::ANTIGRAVITY_DOCS.html is stale. Run 'python build_docs.py' and commit."; exit 1; }
+
+      - name: Integrity manifest is current
+        run: python tools/build_manifest.py --check
+
+  validate:
+    name: Validate kit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Python validator
+        run: python validate_kit.py
+      - name: PowerShell validator
+        shell: pwsh
+        run: ./validate_and_install.ps1 -ValidateOnly
+      - name: Uninstall dry run
+        run: python setup.py --uninstall --target-dir "${{ runner.temp }}" --dry-run
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Ruff (errors and undefined names only)
+        run: |
+          pip install ruff==0.6.9
+          ruff check --select E9,F63,F7,F82,F401 setup.py build_docs.py validate_kit.py tools/
+      - name: PSScriptAnalyzer (errors only)
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          $r = Invoke-ScriptAnalyzer -Path validate_and_install.ps1 -Severity Error
+          $r | Format-Table -AutoSize
+          if ($r) { exit 1 }
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz gitleaks
+          ./gitleaks detect --source . --redact --verbose

@@ -53,6 +53,7 @@ a general-purpose programming language (Python)—and when to combine both.
 
 import argparse
 import base64
+import hashlib
 import json
 import os
 import platform
@@ -69,8 +70,18 @@ from typing import Dict, List, Optional, Tuple
 
 
 CUSTOM_BLOCKLIST_FILENAME = ".custom_blocklist.json"
-REPO_ZIP_URL = "https://github.com/apswood/pantheon-ai-kit/archive/refs/heads/main.zip"
-REPO_RAW_BASE_URL = "https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main"
+# Git ref (tag, branch or commit SHA) to download from. Pin to a release tag (e.g. v1.0.0) for reproducible installs.
+# Override with --ref or the PANTHEON_REF environment variable.
+REPO_REF = os.environ.get("PANTHEON_REF") or "main"
+MANIFEST_FILENAME = "kit_manifest.json"
+
+
+def repo_zip_url(ref: str) -> str:
+    return f"https://github.com/apswood/pantheon-ai-kit/archive/{ref}.zip"
+
+
+def repo_raw_base_url(ref: str) -> str:
+    return f"https://raw.githubusercontent.com/apswood/pantheon-ai-kit/{ref}"
 
 try:
     from validate_kit import EXPECTED_FILES as _CANONICAL_FILES  # type: ignore[import-not-found]
@@ -102,6 +113,19 @@ except Exception:
         "Governance_Framework/AEGIS_Agent_System_Prompt.md",
         "Governance_Framework/SAGE_Agent_System_Prompt.md",
         ".agents/rules/sage-governance-prompt.md",
+        "CLAUDE.md",
+        ".claude/agents/aegis_best_practice.md",
+        ".claude/agents/atlas_architecture.md",
+        ".claude/agents/sage_governance.md",
+        ".claude/agents/sentinel_security.md",
+        ".claude/agents/spark_disruptor.md",
+        ".claude/skills/infrastructure-best-practice-analyser/SKILL.md",
+        ".claude/skills/productivity-workload-governance/SKILL.md",
+        ".claude/skills/quality-audit-governance/SKILL.md",
+        ".claude/skills/support-team-governance-analytics-coaching/SKILL.md",
+        ".claude/skills/teams-standup-digest-notifier/SKILL.md",
+        ".claude/skills/ticket-backlog-governance/SKILL.md",
+        ".claude/rules/sage-governance-prompt.md",
     ]
 
 
@@ -139,6 +163,38 @@ LANGUAGE_RECOMMENDATION_MATRIX: List[Tuple[str, str, str]] = [
 ]
 
 
+def verify_kit_integrity(kit_dir: Path, ref: str) -> None:
+    """Verify downloaded files against kit_manifest.json fetched separately from the pinned ref.
+
+    Raises RuntimeError on any digest mismatch or missing file. A manifest that cannot be fetched only warns,
+    so installs from refs that predate the manifest still work.
+    """
+    url = f"{repo_raw_base_url(ref)}/{MANIFEST_FILENAME}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Pantheon-AI-Kit-Bootstrap/1.0"})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            manifest = json.loads(resp.read().decode("utf-8"))
+        expected: Dict[str, str] = manifest["files"]
+    except Exception as exc:
+        print(f"                   [WARN] Integrity manifest unavailable at ref '{ref}' ({exc}); skipping SHA-256 verification.")
+        return
+
+    bad: List[str] = []
+    for rel_path, want in expected.items():
+        path = kit_dir / rel_path
+        if not path.is_file():
+            bad.append(f"{rel_path} (missing)")
+            continue
+        got = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+        if got != want:
+            bad.append(f"{rel_path} (digest mismatch)")
+    if bad:
+        raise RuntimeError(
+            f"Integrity check FAILED for ref '{ref}' - refusing to continue:\n  " + "\n  ".join(bad)
+        )
+    print(f"                   [OK] SHA-256 verified {len(expected)} files against {MANIFEST_FILENAME} (ref '{ref}', v{manifest.get('version', '?')}).")
+
+
 def ensure_kit_files_present(kit_dir: Path) -> None:
     """Download missing kit components from GitHub if setup.py is executed standalone without cloning."""
     key_markers = [
@@ -159,7 +215,7 @@ def ensure_kit_files_present(kit_dir: Path) -> None:
         tmp_path = Path(tmp_dir)
         zip_path = tmp_path / "pantheon-ai-kit.zip"
         try:
-            req = urllib.request.Request(REPO_ZIP_URL, headers={"User-Agent": "Pantheon-AI-Kit-Bootstrap/1.0"})
+            req = urllib.request.Request(repo_zip_url(REPO_REF), headers={"User-Agent": "Pantheon-AI-Kit-Bootstrap/1.0"})
             with urllib.request.urlopen(req, timeout=30) as resp, open(zip_path, "wb") as out_f:
                 shutil.copyfileobj(resp, out_f)
             with zipfile.ZipFile(zip_path, "r") as zf:
@@ -182,11 +238,13 @@ def ensure_kit_files_present(kit_dir: Path) -> None:
         for rel_path in REQUIRED_KIT_FILES:
             dest_file = kit_dir / rel_path
             dest_file.parent.mkdir(parents=True, exist_ok=True)
-            raw_url = f"{REPO_RAW_BASE_URL}/{rel_path}"
+            raw_url = f"{repo_raw_base_url(REPO_REF)}/{rel_path}"
             req = urllib.request.Request(raw_url, headers={"User-Agent": "Pantheon-AI-Kit-Bootstrap/1.0"})
             with urllib.request.urlopen(req, timeout=20) as resp, open(dest_file, "wb") as out_f:
                 shutil.copyfileobj(resp, out_f)
         print(f"                   [OK] Downloaded all {len(REQUIRED_KIT_FILES)} canonical files from GitHub.")
+
+    verify_kit_integrity(kit_dir, REPO_REF)
 
 
 def encode_reversed_base64(plain_text: str) -> str:
@@ -449,6 +507,16 @@ def plan_uninstallation(
         target_dir / ".agents" / "agents",
         target_dir / ".agents" / "skills",
         target_dir / ".agents",
+        target_dir / ".claude" / "skills" / "infrastructure-best-practice-analyser",
+        target_dir / ".claude" / "skills" / "ticket-backlog-governance",
+        target_dir / ".claude" / "skills" / "productivity-workload-governance",
+        target_dir / ".claude" / "skills" / "quality-audit-governance",
+        target_dir / ".claude" / "skills" / "teams-standup-digest-notifier",
+        target_dir / ".claude" / "skills" / "support-team-governance-analytics-coaching",
+        target_dir / ".claude" / "rules",
+        target_dir / ".claude" / "agents",
+        target_dir / ".claude" / "skills",
+        target_dir / ".claude",
         target_dir / "Governance_Framework",
     ]
     if purge_venv:
@@ -682,6 +750,12 @@ def main() -> int:
         description="Bootstrap the PANTHEON AI Agent and Skills Setup Kit for Service Governance."
     )
     parser.add_argument(
+        "--ref",
+        type=str,
+        default=None,
+        help="Git tag/branch/SHA to download from when bootstrapping (default: $PANTHEON_REF or 'main'). Pin a release tag.",
+    )
+    parser.add_argument(
         "--target-dir",
         type=str,
         default=None,
@@ -757,6 +831,9 @@ def main() -> int:
     )
 
     args = parser.parse_args()
+    global REPO_REF
+    if args.ref:
+        REPO_REF = args.ref
     kit_dir = Path(__file__).resolve().parent
     target_dir = Path(args.target_dir).resolve() if args.target_dir else kit_dir
 

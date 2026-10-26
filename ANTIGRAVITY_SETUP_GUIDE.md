@@ -979,11 +979,11 @@ To install the kit into an existing or new workspace, place the unzipped `./Anti
 *Discovery Precedence*: Workspace customizations in `.agents/` take highest priority over global user preferences and IDE defaults, ensuring every team member working in the repository experiences identical agent behaviors and governance rules.
 
 ### 7.2 Automated Zero-Clone Workspace Bootstrap (`irm | iex`), `setup.py`, and Validation
-You do **not** need to clone or manually download the GitHub repository before setting up a workspace. Both [`validate_and_install.ps1`](validate_and_install.ps1) and [`setup.py`](setup.py) are self-bootstrapping: if run in a directory where the 24 canonical kit files are not yet present, they automatically download and extract the complete kit from `https://github.com/apswood/pantheon-ai-kit`, initialize `.env` from `.env.template`, offer the optional custom keyword leak scanner builder (`.custom_blocklist.json`, protected by `.gitignore`), and run all 4 validation stages.
+You do **not** need to clone or manually download the GitHub repository before setting up a workspace. Both [`validate_and_install.ps1`](validate_and_install.ps1) and [`setup.py`](setup.py) are self-bootstrapping: if run in a directory where the 37 canonical kit files are not yet present, they automatically download and extract the complete kit from `https://github.com/apswood/pantheon-ai-kit`, initialize `.env` from `.env.template`, offer the optional custom keyword leak scanner builder (`.custom_blocklist.json`, protected by `.gitignore`), and run all 4 validation stages.
 
 #### Option A (Recommended — Zero-Clone PowerShell One-Liner via `irm | iex`)
 ```powershell
-# 1. Zero-clone bootstrap into your current directory (downloads validate_and_install.ps1, setup.py & all 24 components):
+# 1. Zero-clone bootstrap into your current directory (downloads validate_and_install.ps1, setup.py & all 37 components):
 mkdir C:\Workspaces\ITSM_Support_Analytics; cd C:\Workspaces\ITSM_Support_Analytics
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
 
@@ -996,7 +996,7 @@ $env:PANTHEON_SKIP_SCANNER = "1"; irm https://raw.githubusercontent.com/apswood/
 
 #### Option B: Cross-Platform Python Bootstrapper (`setup.py`)
 ```powershell
-# 1. Zero-clone Python one-liner (downloads setup.py, which automatically fetches all 24 kit files & runs setup):
+# 1. Zero-clone Python one-liner (downloads setup.py, which automatically fetches all 37 kit files & runs setup):
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/setup.py -OutFile setup.py; python setup.py --init-env
 
 # 2. Inspect host runtimes, print the Python vs. PowerShell guide, rebuild the HTML docs, and validate the kit:
@@ -1029,7 +1029,7 @@ python validate_kit.py --verbose
 ```
 
 The validation pipeline executes four discrete checks:
-- **Stage 1 (Structure Check)**: Confirms presence and non-zero size of all 24 canonical kit files (5 specialist agents, 6 skills, 2 system prompts, rules, templates, and scripts) and verifies `GEMINI.md` is strictly `< 24,000 bytes`.
+- **Stage 1 (Structure Check)**: Confirms presence and non-zero size of all 37 canonical kit files (5 specialist agents, 6 skills, 2 system prompts, rules, templates, and scripts) and verifies `GEMINI.md` is strictly `< 24,000 bytes`.
 - **Stage 2 (YAML Frontmatter Check)**: Verifies that every `agent.md` and `SKILL.md` file contains valid opening/closing `---` delimiters and non-empty `name` and `description` context pointers.
 - **Stage 3 (De-Identification & Secret Leak Scan)**: Scans all files against 5 built-in generic credential/secret regex rules (`PEM Private Keys`, `GitHub PATs`, `AWS Access Key IDs`, `Slack API Tokens`, `Hardcoded OAuth Client Secrets`) plus any optional local custom `$EncodedRules` stored in `.custom_blocklist.json` (gitignored). Zero reversible organization-specific text is stored in the upstream repository.
 - **Stage 4 (Configuration Hygiene Check)**: Proves that `.gitignore` contains strict exclusion rules for `.env`, `.venv`, and `.custom_blocklist.json`, and that `.env.template` contains no plain text passwords.
@@ -1131,6 +1131,29 @@ Remove-Item .\.custom_blocklist.json -Force -ErrorAction SilentlyContinue
 pwsh -NoProfile -File .\validate_and_install.ps1 -ValidateOnly
 ```
 
+### 7.7a Pinned Releases and Integrity Verification
+
+The bootstrappers accept a Git ref: `PANTHEON_REF` (env var, works with `irm | iex`), `-Ref` (PowerShell) or `--ref` (Python). Use a release tag such as `v1.0.0` rather than `main`. After download, both installers fetch `kit_manifest.json` from the same ref and compare a SHA-256 digest (computed over LF-normalised content, so Windows and Linux agree) for every file. A mismatch or missing file aborts the install. If a ref predates the manifest, a warning is printed and verification is skipped.
+
+The manifest is hosted in the same repository, so it detects corruption and mixed-ref downloads but cannot protect against a compromised repository; review the tag you pin. Maintainers regenerate it with `python tools/build_manifest.py` (CI runs `--check`).
+
+### 7.7b Claude Code Compatibility
+
+The kit runs in Claude Code as well as Antigravity. `.agents/` remains the canonical source; the following are **generated** by `python tools/sync_claude.py` and must not be hand-edited:
+
+| Source (Antigravity) | Generated (Claude Code) | Transformation |
+| :--- | :--- | :--- |
+| `.agents/agents/<name>/agent.md` | `.claude/agents/<name>.md` | Frontmatter reduced to `name`, `description`, `tools`; `hidden`, `inheritCustomizations`, `inheritMcp` dropped; body unchanged |
+| `.agents/skills/<name>/SKILL.md` | `.claude/skills/<name>/SKILL.md` | Copied verbatim (identical `name`/`description` format) |
+| `.agents/rules/*.md` | `.claude/rules/*.md` | Frontmatter stripped; always loaded |
+| `GEMINI.md` | `CLAUDE.md` (hand-written) | `@GEMINI.md` import, so both tools share one ledger |
+
+Tool mapping: `view_file`→`Read`, `find_by_name`/`list_dir`→`Glob`, `grep_search`→`Grep`, `read_url_content`→`WebFetch`, `search_web`→`WebSearch`. `send_message`, `schedule` and `generate_image` have no Claude Code equivalent and are dropped. The Claude Code agents are therefore read-only advisors, consistent with their advisory mandate.
+
+Usage in Claude Code: open the workspace and run `claude`; invoke agents with `@aegis_best_practice` or natural language, and skills with `/ticket-backlog-governance`. Antigravity-only workflow commands in §7.5 (`/plan`, `/teamwork-preview`, `/compact` semantics) apply to Antigravity; Claude Code has its own plan mode and `/compact`.
+
+Contributor workflow: edit `.agents/`, run `python tools/sync_claude.py`, `python build_docs.py`, `python tools/build_manifest.py` (in that order), then `python validate_kit.py`. CI fails if any generated file is stale.
+
 ### 7.7 Workspace Lifecycle Symmetry & Surgical Uninstallation
 
 Provisioning starter kit files into shared enterprise repositories requires equal rigor when decommissioning or rolling back changes. Both [`setup.py`](setup.py) and [`validate_and_install.ps1`](validate_and_install.ps1) implement non-destructive, surgical uninstallation:
@@ -1142,7 +1165,7 @@ Provisioning starter kit files into shared enterprise repositories requires equa
 2. **Suicide Deletion Hazard & Source Repo Protection**:
    - Running `python setup.py --uninstall` or `pwsh validate_and_install.ps1 -Uninstall` directly inside the kit source clone aborts immediately (`Exit Code 1`) to prevent accidental repository self-destruction. Uninstallation requires either an external `--target-dir` / `-TargetWorkspaceDir` or an explicit `--force` override.
 3. **Surgical Deletion vs. Recursive Purge**:
-   - Uninstallation removes only the 24 canonical kit files and generated artifacts. It prunes parent directories (`.agents/agents/`, `.agents/skills/`, `.agents/`) **only if they become completely empty**, preserving any custom agents, skills, or configurations created by your engineers.
+   - Uninstallation removes only the 37 canonical kit files and generated artifacts. It prunes parent directories (`.agents/agents/`, `.agents/skills/`, `.agents/`) **only if they become completely empty**, preserving any custom agents, skills, or configurations created by your engineers.
 4. **Deterministic Dry-Run Verification**:
    - Both `python setup.py --uninstall --dry-run` and `pwsh validate_and_install.ps1 -Uninstall -WhatIf` output a detailed preview of all candidate files and directories without altering disk state.
 

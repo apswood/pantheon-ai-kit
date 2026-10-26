@@ -4,7 +4,7 @@
 .DESCRIPTION
     Supports single-command remote bootstrap directly from GitHub via:
         irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
-    If run in a directory where the 24 canonical kit files are not yet present, automatically downloads
+    If run in a directory where the 37 canonical kit files are not yet present, automatically downloads
     and extracts the kit components (validate_and_install.ps1, setup.py, agents, skills, rules, and docs)
     from https://github.com/apswood/pantheon-ai-kit, initializes .env from .env.template, offers the
     optional custom keyword leak scanner builder (.custom_blocklist.json, protected by .gitignore),
@@ -29,6 +29,8 @@
     Launches the interactive builder to add custom organization keywords/patterns to .custom_blocklist.json ($EncodedRules).
 .PARAMETER SkipCustomScanner
     Skips the optional interactive prompt for configuring custom scanner keywords during setup.
+.PARAMETER Ref
+    Git tag, branch or commit SHA to download from (default: $env:PANTHEON_REF or main). Pin a release tag such as v1.0.0 for reproducible, integrity-verified installs.
 .PARAMETER RepoZipUrl
     GitHub archive ZIP URL used when bootstrapping via irm | iex without a local clone.
 .PARAMETER RepoRawBaseUrl
@@ -70,9 +72,11 @@ param(
 
     [switch]$DryRun,
 
-    [string]$RepoZipUrl = "https://github.com/apswood/pantheon-ai-kit/archive/refs/heads/main.zip",
+    [string]$Ref,
 
-    [string]$RepoRawBaseUrl = "https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main"
+    [string]$RepoZipUrl,
+
+    [string]$RepoRawBaseUrl
 )
 
 Set-StrictMode -Version Latest
@@ -85,6 +89,12 @@ $IsIex = [string]::IsNullOrEmpty($PSScriptRoot)
 if (-not $TargetWorkspaceDir -and $env:PANTHEON_TARGET_DIR) {
     $TargetWorkspaceDir = $env:PANTHEON_TARGET_DIR
 }
+# Git ref (tag, branch or commit SHA) to download from. Pin a release tag (e.g. v1.0.0) for reproducible installs.
+if (-not $Ref) { $Ref = $env:PANTHEON_REF }
+if (-not $Ref) { $Ref = "main" }
+if (-not $RepoZipUrl) { $RepoZipUrl = "https://github.com/apswood/pantheon-ai-kit/archive/$Ref.zip" }
+if (-not $RepoRawBaseUrl) { $RepoRawBaseUrl = "https://raw.githubusercontent.com/apswood/pantheon-ai-kit/$Ref" }
+
 if (-not $SkipCustomScanner -and ($env:PANTHEON_SKIP_SCANNER -match '^(1|true|yes)$')) {
     $SkipCustomScanner = $true
 }
@@ -117,7 +127,20 @@ $RequiredFiles = @(
     ".agents/skills/ticket-backlog-governance/SKILL.md",
     "Governance_Framework/AEGIS_Agent_System_Prompt.md",
     "Governance_Framework/SAGE_Agent_System_Prompt.md",
-    ".agents/rules/sage-governance-prompt.md"
+    ".agents/rules/sage-governance-prompt.md",
+    "CLAUDE.md",
+    ".claude/agents/aegis_best_practice.md",
+    ".claude/agents/atlas_architecture.md",
+    ".claude/agents/sage_governance.md",
+    ".claude/agents/sentinel_security.md",
+    ".claude/agents/spark_disruptor.md",
+    ".claude/skills/infrastructure-best-practice-analyser/SKILL.md",
+    ".claude/skills/productivity-workload-governance/SKILL.md",
+    ".claude/skills/quality-audit-governance/SKILL.md",
+    ".claude/skills/support-team-governance-analytics-coaching/SKILL.md",
+    ".claude/skills/teams-standup-digest-notifier/SKILL.md",
+    ".claude/skills/ticket-backlog-governance/SKILL.md",
+    ".claude/rules/sage-governance-prompt.md"
 )
 
 $CustomBlocklistFileName = ".custom_blocklist.json"
@@ -164,10 +187,45 @@ function Test-KitFilesPresent ([string]$DirPath) {
     return $true
 }
 
+function Get-NormalizedSha256 ([string]$FilePath) {
+    # Hash LF-normalised bytes so CRLF checkouts match the manifest generated on any platform.
+    $bytes = [System.IO.File]::ReadAllBytes($FilePath)
+    $text = [System.Text.Encoding]::UTF8.GetString($bytes).Replace("`r`n", "`n")
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $hash = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text))
+    } finally { $sha.Dispose() }
+    return (($hash | ForEach-Object { $_.ToString("x2") }) -join "")
+}
+
+function Test-PantheonKitIntegrity ([string]$KitDir) {
+    # Verify downloaded files against kit_manifest.json fetched separately from the pinned ref.
+    $manifestUrl = "$RepoRawBaseUrl/kit_manifest.json"
+    try {
+        $manifest = Invoke-RestMethod -Uri $manifestUrl -UseBasicParsing
+        if ($manifest -is [string]) { $manifest = $manifest | ConvertFrom-Json }
+        $expected = $manifest.files
+        if ($null -eq $expected) { throw "manifest has no 'files' section" }
+    } catch {
+        Write-Host "  [WARN] Integrity manifest unavailable at ref '$Ref' ($($_.Exception.Message)); skipping SHA-256 verification." -ForegroundColor Yellow
+        return
+    }
+    $bad = [System.Collections.Generic.List[string]]::new()
+    foreach ($prop in $expected.PSObject.Properties) {
+        $path = Join-Path $KitDir ($prop.Name -replace '/', [System.IO.Path]::DirectorySeparatorChar)
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { $bad.Add("$($prop.Name) (missing)"); continue }
+        if ((Get-NormalizedSha256 $path) -ne $prop.Value) { $bad.Add("$($prop.Name) (digest mismatch)") }
+    }
+    if ($bad.Count -gt 0) {
+        throw ("Integrity check FAILED for ref '$Ref' - refusing to continue:`n  " + ($bad -join "`n  "))
+    }
+    Write-Host "  [OK] SHA-256 verified $(@($expected.PSObject.Properties).Count) files against kit_manifest.json (ref '$Ref', v$($manifest.version))." -ForegroundColor Green
+}
+
 function Install-PantheonKitFromGitHub ([string]$DestinationDir) {
     Write-Host "`n[REMOTE BOOTSTRAP] Local kit files not found. Downloading PANTHEON AI Setup Kit from GitHub..." -ForegroundColor Yellow
     Write-Host "  Destination : $DestinationDir" -ForegroundColor Gray
-    Write-Host "  Source Repo : https://github.com/apswood/pantheon-ai-kit" -ForegroundColor Gray
+    Write-Host "  Source Repo : https://github.com/apswood/pantheon-ai-kit (ref: $Ref)" -ForegroundColor Gray
 
     if (-not (Test-Path -LiteralPath $DestinationDir)) {
         New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
@@ -218,6 +276,8 @@ function Install-PantheonKitFromGitHub ([string]$DestinationDir) {
         }
         Write-Host "  [OK] Downloaded all $($RequiredFiles.Count) canonical files via raw GitHub stream." -ForegroundColor Green
     }
+
+    Test-PantheonKitIntegrity $DestinationDir
 }
 
 function Invoke-CustomScannerSetup ([string]$WorkspaceDir) {
@@ -422,6 +482,16 @@ function Invoke-KitUninstallation {
         ".agents/agents",
         ".agents/skills",
         ".agents",
+        ".claude/skills/infrastructure-best-practice-analyser",
+        ".claude/skills/ticket-backlog-governance",
+        ".claude/skills/productivity-workload-governance",
+        ".claude/skills/quality-audit-governance",
+        ".claude/skills/teams-standup-digest-notifier",
+        ".claude/skills/support-team-governance-analytics-coaching",
+        ".claude/rules",
+        ".claude/agents",
+        ".claude/skills",
+        ".claude",
         "Governance_Framework"
     )
 
@@ -611,7 +681,7 @@ if (Test-Path -LiteralPath $LocalBlocklistPath) {
 
 $Issues = [System.Collections.Generic.List[string]]::new()
 
-# STAGE 1: File Existence and Byte Limit Check (24 canonical files)
+# STAGE 1: File Existence and Byte Limit Check (37 canonical files)
 Write-Host "[STAGE 1/4] Checking canonical file structure and byte limits..." -ForegroundColor Yellow
 
 foreach ($relPath in $RequiredFiles) {
@@ -636,7 +706,7 @@ if (Test-Path -LiteralPath $geminiFile) {
 }
 
 if ($Issues.Count -eq 0) {
-    Write-Host "  [PASS] All 24 canonical files exist and GEMINI.md size is within limits." -ForegroundColor Green
+    Write-Host "  [PASS] All 37 canonical files exist and GEMINI.md size is within limits." -ForegroundColor Green
 } else {
     Write-Host "  [FAIL] Detected $($Issues.Count) structure/size issue(s)." -ForegroundColor Red
 }

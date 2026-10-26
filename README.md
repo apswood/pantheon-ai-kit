@@ -4,6 +4,7 @@
 > An enterprise starter kit of **5 specialist AI advisory agents**, **6 operational & infrastructure hardening skills**, **standalone master prompts**, and **automated zero-leak validation tooling** for Enterprise IT, Service Operations, and Managed Service Providers (MSPs).  
 > Grounded in **ITIL 4 & ITIL 5**, **NIST SP 800-41 / 800-53 / CSF 2.0**, **NCSC & Cyber Essentials Plus**, and **UK Financial-Services Operational Resilience (`UKFS-01`–`UKFS-06`)** across `PAN-OS`, `FortiOS`, `Junos`, `Windows Server`, and `Linux Server`.
 
+- **Works with both Google Antigravity and Claude Code** — `.agents/` is the canonical source; `.claude/` and `CLAUDE.md` are generated mirrors (see [§1.1](#11-using-the-kit-with-claude-code))
 - **Live HTML Documentation Portal**: [**`https://apswood.github.io/pantheon-ai-kit/`**](https://apswood.github.io/pantheon-ai-kit/)
 - **Offline Local Documentation Portal**: Open [`ANTIGRAVITY_DOCS.html`](ANTIGRAVITY_DOCS.html) directly in any browser (`file://` — zero web server or internet connection required)
 - **Complete Setup & Engineering Manual**: [`ANTIGRAVITY_SETUP_GUIDE.md`](ANTIGRAVITY_SETUP_GUIDE.md)
@@ -12,7 +13,7 @@
 
 ## 1. Quickstart & Installation
 
-You do **not** need to clone or manually download the repository beforehand. Run a single bootstrap command in your target project directory to download all 24 canonical kit files, initialize `.env` from `.env.template`, optionally configure the custom keyword leak scanner, and run all 4 pre-flight validation checks.
+You do **not** need to clone or manually download the repository beforehand. Run a single bootstrap command in your target project directory to download all 37 canonical kit files, initialize `.env` from `.env.template`, optionally configure the custom keyword leak scanner, and run all 4 pre-flight validation checks.
 
 ### Option A: Zero-Clone PowerShell One-Liner (Recommended)
 Open PowerShell (`pwsh` 7.2+ recommended, or Windows PowerShell 5.1) in your target directory and run:
@@ -30,7 +31,7 @@ $env:PANTHEON_TARGET_DIR = "C:\Workspaces\ServiceDeliveryOps"; irm https://raw.g
 If you prefer Python (Windows, macOS, or Linux):
 
 ```powershell
-# Zero-clone Python bootstrap (fetches all 24 kit files, initializes .env, rebuilds HTML docs, and validates):
+# Zero-clone Python bootstrap (fetches all 37 kit files, initializes .env, rebuilds HTML docs, and validates):
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/setup.py -OutFile setup.py; python setup.py --init-env
 
 # Or from an existing local clone (with optional isolated .venv creation):
@@ -50,6 +51,33 @@ python setup.py --init-env --venv
    pwsh -NoProfile -File .\validate_and_install.ps1 -ConfigureCustomScanner
    python setup.py --configure-scanner
    ```
+
+### Pinning a Release & Integrity Verification (Recommended)
+`main` moves. For reproducible installs, pin a release tag (or commit SHA) with `PANTHEON_REF` (or `-Ref` / `--ref`). The installers fetch `kit_manifest.json` from that ref and verify the SHA-256 of every downloaded file; any mismatch aborts the install.
+
+```powershell
+$env:PANTHEON_REF = "v1.0.0"; irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/v1.0.0/validate_and_install.ps1 | iex
+```
+
+To inspect before running, download first: `irm <url> -OutFile validate_and_install.ps1`, read it, then run `pwsh -File .alidate_and_install.ps1 -Ref v1.0.0`.
+> The manifest comes from the same repository, so it protects against corruption and partial or mixed-ref downloads, not against a compromised repository. Pinning a tag you have reviewed is what gives you immutability.
+
+### 1.1 Using the Kit with Claude Code
+The same agents and skills work in **Claude Code** with no extra setup beyond the bootstrap above:
+
+| Capability | Antigravity | Claude Code |
+| :--- | :--- | :--- |
+| Workspace context | `GEMINI.md` | `CLAUDE.md` (imports `GEMINI.md`, one shared ledger) |
+| Specialist agents | `.agents/agents/<name>/agent.md` | `.claude/agents/<name>.md` (invoke `@aegis_best_practice`) |
+| Skills | `.agents/skills/<name>/SKILL.md` | `.claude/skills/<name>/SKILL.md` (`/ticket-backlog-governance`) |
+| Always-on rule | `.agents/rules/` | `.claude/rules/` |
+
+`.agents/` is the **single source of truth**. After editing anything there, regenerate the Claude Code mirror (tool names are remapped, e.g. `view_file` to `Read`, `grep_search` to `Grep`; Antigravity-only keys are dropped):
+
+```bash
+python tools/sync_claude.py          # regenerate .claude/
+python tools/sync_claude.py --check  # CI: fail if .claude/ is stale
+```
 
 ### Uninstallation & Workspace Cleanup
 To surgically remove the starter kit from a target workspace (preserving your `.env` secrets and any custom project files by default):
@@ -98,7 +126,7 @@ Skills use **progressive disclosure**—only their lightweight YAML context poin
 
 ---
 
-## 3. Repository Layout (24 Canonical Files)
+## 3. Repository Layout (37 Canonical Files)
 
 ```text
 pantheon-ai-kit/
@@ -106,6 +134,8 @@ pantheon-ai-kit/
 │   ├── agents/                             # 5 Specialist Subagents (AEGIS, ATLAS, SAGE, SENTINEL, SPARK)
 │   ├── skills/                             # 6 Progressive-Disclosure Operational & Hardening Skills
 │   └── rules/sage-governance-prompt.md     # Always-on workspace governance rule
+├── .claude/                                # Claude Code mirror GENERATED from .agents/ (agents, skills, rules)
+├── CLAUDE.md                               # Claude Code entry point (imports GEMINI.md)
 ├── Governance_Framework/                   # Standalone SAGE & AEGIS master system prompts
 ├── GEMINI.md                               # Living workspace handover & session state ledger (< 24 KB)
 ├── ANTIGRAVITY_DOCS.html                   # Offline-ready responsive HTML5 documentation portal
@@ -116,7 +146,10 @@ pantheon-ai-kit/
 ├── setup.py                                # Python bootstrapper, runtime advisor & uninstaller
 ├── build_docs.py                           # Zero-dependency compiler regenerating ANTIGRAVITY_DOCS.html
 ├── validate_kit.py                         # Python 4-stage structural & secret leak validator
-└── validate_and_install.ps1                # PowerShell zero-clone bootstrapper, validator & uninstaller
+├── validate_and_install.ps1                # PowerShell zero-clone bootstrapper, validator & uninstaller
+├── tools/                                  # Repo-only maintainer tools (not installed): sync_claude.py, build_manifest.py
+├── kit_manifest.json                       # SHA-256 digests verified by installers (repo-only)
+└── VERSION                                 # Kit release version (repo-only)
 ```
 
 ---

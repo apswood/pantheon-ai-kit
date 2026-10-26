@@ -13,7 +13,6 @@ Why this Hybrid Architecture?
    `ANTIGRAVITY_DOCS.html` directly from the live `.md` files in under 0.5 seconds.
 """
 
-import datetime
 import html
 import json
 import re
@@ -615,7 +614,9 @@ def build_docs_html(kit_dir: Path) -> Path:
         for p in pages_data
     ]
     index_json = json.dumps(client_index, ensure_ascii=False)
-    build_timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    # Deterministic (no wall-clock) so CI can detect stale committed docs by rebuilding and diffing.
+    version_file = Path(__file__).resolve().parent / "VERSION"
+    build_timestamp = "kit v" + (version_file.read_text(encoding="utf-8").strip() if version_file.exists() else "dev")
     total_docs = len(pages_data)
 
     docs_portal = f"""<!DOCTYPE html>
