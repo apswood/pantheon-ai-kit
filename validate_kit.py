@@ -32,7 +32,7 @@ RESET = "\033[0m"
 
 CUSTOM_BLOCKLIST_FILENAME = ".custom_blocklist.json"
 
-# Expected Kit Files Relative to Kit Root (All 24 canonical files)
+# Expected Kit Files Relative to Kit Root (All 27 canonical files)
 EXPECTED_FILES = [
     "README.md",
     "ANTIGRAVITY_SETUP_GUIDE.md",
@@ -46,16 +46,19 @@ EXPECTED_FILES = [
     "validate_and_install.ps1",
     ".agents/agents/aegis_best_practice/agent.md",
     ".agents/agents/atlas_architecture/agent.md",
+    ".agents/agents/hermes_migration/agent.md",
     ".agents/agents/sage_governance/agent.md",
     ".agents/agents/sentinel_security/agent.md",
     ".agents/agents/spark_disruptor/agent.md",
     ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
     ".agents/skills/productivity-workload-governance/SKILL.md",
     ".agents/skills/quality-audit-governance/SKILL.md",
+    ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
     ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
     ".agents/skills/teams-standup-digest-notifier/SKILL.md",
     ".agents/skills/ticket-backlog-governance/SKILL.md",
     "Governance_Framework/AEGIS_Agent_System_Prompt.md",
+    "Governance_Framework/HERMES_Agent_System_Prompt.md",
     "Governance_Framework/SAGE_Agent_System_Prompt.md",
     ".agents/rules/sage-governance-prompt.md",
 ]
@@ -328,7 +331,7 @@ def scan_deidentification_detailed(
     custom_leak_count = 0
 
     for root, dirs, files in os.walk(kit_dir):
-        dirs[:] = [d for d in dirs if d not in {".git", ".venv", "venv", "__pycache__"}]
+        dirs[:] = [d for d in dirs if d not in {".git", ".venv", "venv", "__pycache__", "teamwork"}]
         for fname in files:
             if fname in excluded_filenames or fname.endswith((".zip", ".pyc", ".pyo", ".pyd")):
                 continue

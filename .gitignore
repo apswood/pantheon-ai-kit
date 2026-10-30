@@ -49,10 +49,12 @@ credentials.*
 !**/Data/.gitkeep
 !**/Data/*.template.txt
 
-# Ad-hoc debug, dump, or diff output files
+# Ad-hoc debug, dump, or diff output files (and live server discovery bundles)
 *_output.txt
 *_dump.json
 comparison_output.txt
+discovery_*/
+discovery_*.tar.gz
 
 # -------------------------------------------------------------------------
 # 3. Automation Flow Packages & Build Artifacts

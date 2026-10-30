@@ -1,7 +1,7 @@
 # PANTHEON AI Agent and Skills Setup Kit for Service Governance
 
 > **PANTHEON** — *Platform for AI-Native Technical Hygiene, Excellence & Operational Navigation*  
-> An enterprise starter kit of **5 specialist AI advisory agents**, **6 operational & infrastructure hardening skills**, **standalone master prompts**, and **automated zero-leak validation tooling** for Enterprise IT, Service Operations, and Managed Service Providers (MSPs).  
+> An enterprise starter kit of **6 specialist AI advisory agents**, **7 operational & infrastructure hardening skills**, **standalone master prompts**, and **automated zero-leak validation tooling** for Enterprise IT, Service Operations, and Managed Service Providers (MSPs).  
 > Grounded in **ITIL 4 & ITIL 5**, **NIST SP 800-41 / 800-53 / CSF 2.0**, **NCSC & Cyber Essentials Plus**, and **UK Financial-Services Operational Resilience (`UKFS-01`–`UKFS-06`)** across `PAN-OS`, `FortiOS`, `Junos`, `Windows Server`, and `Linux Server`.
 
 - **Live HTML Documentation Portal**: [**`https://apswood.github.io/pantheon-ai-kit/`**](https://apswood.github.io/pantheon-ai-kit/)
@@ -12,7 +12,7 @@
 
 ## 1. Quickstart & Installation
 
-You do **not** need to clone or manually download the repository beforehand. Run a single bootstrap command in your target project directory to download all 24 canonical kit files, initialize `.env` from `.env.template`, optionally configure the custom keyword leak scanner, and run all 4 pre-flight validation checks.
+You do **not** need to clone or manually download the repository beforehand. Run a single bootstrap command in your target project directory to download all 27 canonical kit files, initialize `.env` from `.env.template`, optionally configure the custom keyword leak scanner, and run all 4 pre-flight validation checks.
 
 ### Option A: Zero-Clone PowerShell One-Liner (Recommended)
 Open PowerShell (`pwsh` 7.2+ recommended, or Windows PowerShell 5.1) in your target directory and run:
@@ -30,7 +30,7 @@ $env:PANTHEON_TARGET_DIR = "C:\Workspaces\ServiceDeliveryOps"; irm https://raw.g
 If you prefer Python (Windows, macOS, or Linux):
 
 ```powershell
-# Zero-clone Python bootstrap (fetches all 24 kit files, initializes .env, rebuilds HTML docs, and validates):
+# Zero-clone Python bootstrap (fetches all 27 kit files, initializes .env, rebuilds HTML docs, and validates):
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/setup.py -OutFile setup.py; python setup.py --init-env
 
 # Or from an existing local clone (with optional isolated .venv creation):
@@ -39,7 +39,7 @@ python setup.py --init-env --venv
 
 ### Next Steps After Installation
 1. **Populate Local Credentials (`.env`)**: Open the generated `.env` file and add your environment values (ITSM URL, Entra ID / Graph tenant GUID, or Teams webhook URL). `.env` is strictly blocked by `.gitignore` and never committed to Git.
-2. **Open Workspace in Google Antigravity**: Open the workspace folder in Google Antigravity. It automatically discovers `GEMINI.md`, all 5 agents in `.agents/agents/`, and all 6 skills in `.agents/skills/`.
+2. **Open Workspace in Google Antigravity**: Open the workspace folder in Google Antigravity. It automatically discovers `GEMINI.md`, all 6 agents in `.agents/agents/`, and all 7 skills in `.agents/skills/`.
 3. **Verify or Customize Leak Scanning *(Optional)***:
    ```powershell
    # Run the 4-stage compliance & credential leak validator at any time:
@@ -69,18 +69,19 @@ python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" -y
 
 ## 2. What's Included at a Glance
 
-### 2.1 Five Specialist Multi-Agent Personas (`.agents/agents/`)
+### 2.1 Six Specialist Multi-Agent Personas (`.agents/agents/`)
 Invoke any specialist agent in isolated subagent context using `@agent_name` or natural language prompts:
 
 | Agent | Persona & Mandate | Example Invocation | Documentation |
 | :--- | :--- | :--- | :--- |
 | **`aegis_best_practice`** | **AEGIS** — Multi-platform infrastructure hardening & resilience auditor (`PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux` against NIST, NCSC, and `UKFS-01..06`). | `"Ask AEGIS to audit this FortiGate / Palo Alto config against NIST 800-41 and UKFS outcomes."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-aegis) · [Source](.agents/agents/aegis_best_practice/agent.md) |
 | **`atlas_architecture`** | **ATLAS** — Systems architecture, deep modules, clean test seams, pure vs. I/O separation, and Python/PowerShell parity. | `"Ask ATLAS to review our API client for retry backoff and pure-function separation."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-atlas) · [Source](.agents/agents/atlas_architecture/agent.md) |
+| **`hermes_migration`** | **HERMES** — Server migration, legacy reverse-engineering, authentication preservation, and target-state infrastructure replication (AlmaLinux 9 & Ansible). | `"Ask HERMES to reverse-engineer our legacy CentOS 7 server and generate an AlmaLinux 9 Ansible replication playbook."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-hermes) · [Source](.agents/agents/hermes_migration/agent.md) |
 | **`sage_governance`** | **SAGE** — ITIL 4/5 service delivery governance, SLA staleness, capacity pacing, QA scorecards, and evidence-based coaching. | `"Have SAGE audit this week's engineer time pacing and backlog stagnancy report."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-sage) · [Source](.agents/agents/sage_governance/agent.md) |
 | **`sentinel_security`** | **SENTINEL** — Zero-trust secret isolation (`.env`, Windows DPAPI), `<REDACTED>` scrubbing, API auth, and GDPR PII hygiene. | `"Ask SENTINEL to scan the workspace for exposed secrets or hardcoded tenant IDs."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-sentinel) · [Source](.agents/agents/sentinel_security/agent.md) |
 | **`spark_disruptor`** | **SPARK** — Design-tree frontier interviewing (`/grill-me`), tracer-bullet vertical slicing, and contrarian Kaizen simplification. | `"Ask SPARK to grill our new config collector design and slice it into tracer-bullet tickets."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-spark) · [Source](.agents/agents/spark_disruptor/agent.md) |
 
-### 2.2 Six On-Demand Operational & Infrastructure Skills (`.agents/skills/`)
+### 2.2 Seven On-Demand Operational & Infrastructure Skills (`.agents/skills/`)
 Skills use **progressive disclosure**—only their lightweight YAML context pointers load at startup, hydrating full mathematical rubrics and standards catalogues on demand:
 
 | Skill | Core Thresholds, Formulas & Standards | Slash / Prompt Trigger | Documentation |
@@ -91,22 +92,24 @@ Skills use **progressive disclosure**—only their lightweight YAML context poin
 | **`quality-audit-governance`** | Dual-metric QA scorecard: `Resolve Pass % (Granular Score %)`, KB0016486 rubric, future-date `Pending` override (`HEALTHY`). | `/quality-audit-governance` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-quality) · [Source](.agents/skills/quality-audit-governance/SKILL.md) |
 | **`teams-standup-digest-notifier`** | Daily standup Adaptive Cards / HTML payloads capped at **Top 5 tickets per squad**, `🔥 Multi-Day` blocker badges (`>= 3d`). | `/teams-standup-digest-notifier` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-digest) · [Source](.agents/skills/teams-standup-digest-notifier/SKILL.md) |
 | **`support-team-governance-analytics-coaching`** | Non-accusatory **3-step evidence-based coaching** plans (Objective Observation $\rightarrow$ Operational Impact $\rightarrow$ Constructive Alignment). | `/support-team-governance-analytics-coaching` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-coaching) · [Source](.agents/skills/support-team-governance-analytics-coaching/SKILL.md) |
+| **`server-migration-infrastructure-replication`** | 4-phase migration methodology, read-only POSIX discovery, Apache vhosts/EDL reverse-engineering, and AlmaLinux 9 Ansible replication suite. | `/server-migration-infrastructure-replication` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-server-migration) · [Source](.agents/skills/server-migration-infrastructure-replication/SKILL.md) |
 
 ### 2.3 Standalone System Prompts & Copy-Paste Templates (`Governance_Framework/`)
 - **[`AEGIS_Agent_System_Prompt.md`](https://apswood.github.io/pantheon-ai-kit/#aegis-master-prompt)** ([Source](Governance_Framework/AEGIS_Agent_System_Prompt.md)): Ready-to-use copy-paste infrastructure configuration audit prompt (`<REDACTED>` pre-paste checklist + `PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux` assessment) and an architectural blueprint for an automated multi-vendor read-only API ingestion pipeline.
+- **[`HERMES_Agent_System_Prompt.md`](https://apswood.github.io/pantheon-ai-kit/#hermes-master-prompt)** ([Source](Governance_Framework/HERMES_Agent_System_Prompt.md)): Ready-to-use copy-paste server migration and discovery analysis prompt (`<REDACTED>` pre-paste checklist + reverse-engineering & AlmaLinux 9 Ansible target replication runbook).
 - **[`SAGE_Agent_System_Prompt.md`](https://apswood.github.io/pantheon-ai-kit/#sage-master-prompt)** ([Source](Governance_Framework/SAGE_Agent_System_Prompt.md)): Standalone master system prompt for ITIL 4 & ITIL 5 service operations governance and coaching.
 
 ---
 
-## 3. Repository Layout (24 Canonical Files)
+## 3. Repository Layout (27 Canonical Files)
 
 ```text
 pantheon-ai-kit/
 ├── .agents/
-│   ├── agents/                             # 5 Specialist Subagents (AEGIS, ATLAS, SAGE, SENTINEL, SPARK)
-│   ├── skills/                             # 6 Progressive-Disclosure Operational & Hardening Skills
+│   ├── agents/                             # 6 Specialist Subagents (AEGIS, ATLAS, HERMES, SAGE, SENTINEL, SPARK)
+│   ├── skills/                             # 7 Progressive-Disclosure Operational & Hardening Skills
 │   └── rules/sage-governance-prompt.md     # Always-on workspace governance rule
-├── Governance_Framework/                   # Standalone SAGE & AEGIS master system prompts
+├── Governance_Framework/                   # Standalone SAGE, AEGIS & HERMES master system prompts
 ├── GEMINI.md                               # Living workspace handover & session state ledger (< 24 KB)
 ├── ANTIGRAVITY_DOCS.html                   # Offline-ready responsive HTML5 documentation portal
 ├── ANTIGRAVITY_SETUP_GUIDE.md              # Full architecture, hygiene & KPI customization manual
@@ -127,7 +130,7 @@ Detailed architectural guidance, first-principles explanations for Systems Engin
 
 | Topic / Engineering Guide | What You Will Learn | Portal Link |
 | :--- | :--- | :--- |
-| **Grounding Frameworks & System Architecture** | How ITIL 4/5, NIST 800-41/800-53/CSF 2.0, NCSC/CE+, and `UKFS-01..06` map to the 5 agents and 6 skills, plus licensed placeholder handling (`ISO 27001`, `CIS`, `PCI DSS`, `SWIFT`). | [Open in HTML Docs](https://apswood.github.io/pantheon-ai-kit/#setup-guide-14-grounding-frameworks-standards-catalogue-system-architecture) |
+| **Grounding Frameworks & System Architecture** | How ITIL 4/5, NIST 800-41/800-53/CSF 2.0, NCSC/CE+, and `UKFS-01..06` map to the 6 agents and 7 skills, plus licensed placeholder handling (`ISO 27001`, `CIS`, `PCI DSS`, `SWIFT`). | [Open in HTML Docs](https://apswood.github.io/pantheon-ai-kit/#setup-guide-14-grounding-frameworks-standards-catalogue-system-architecture) |
 | **Language Selection Strategy (Python vs. PowerShell 7.2+)** | Why Python is primary for KPI math, APIs, and AI accuracy; when to use PowerShell 7.2+ (`pwsh`) for Windows DPAPI SecretStore/AD/OS tasks; and polyglot combination patterns. | [Open in HTML Docs](https://apswood.github.io/pantheon-ai-kit/#setup-guide-67-language-selection-strategy-systems-scripting-powershell-vs-general-purpose-languages-python) |
 | **Skills vs. Agents & Progressive Disclosure** | How Antigravity's 5-tier discovery hierarchy works, when to build a stateless Skill (`SKILL.md`) vs. an isolated Subagent (`agent.md`), and preventing context window degradation. | [Open in HTML Docs](https://apswood.github.io/pantheon-ai-kit/#setup-guide-2-antigravity-customization-architecture-progressive-disclosure) |
 | **Secret Management from First Principles** | Why Git is an append-only DAG, the 3-tier secret isolation defense (`.gitignore` + `.env.template` + `.env` / Windows DPAPI SecretStore), and fail-fast `config.require()` validation. | [Open in HTML Docs](https://apswood.github.io/pantheon-ai-kit/#setup-guide-3-secret-management-from-first-principles) |

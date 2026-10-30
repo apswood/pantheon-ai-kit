@@ -4,7 +4,7 @@
 .DESCRIPTION
     Supports single-command remote bootstrap directly from GitHub via:
         irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
-    If run in a directory where the 24 canonical kit files are not yet present, automatically downloads
+    If run in a directory where the 27 canonical kit files are not yet present, automatically downloads
     and extracts the kit components (validate_and_install.ps1, setup.py, agents, skills, rules, and docs)
     from https://github.com/apswood/pantheon-ai-kit, initializes .env from .env.template, offers the
     optional custom keyword leak scanner builder (.custom_blocklist.json, protected by .gitignore),
@@ -106,16 +106,19 @@ $RequiredFiles = @(
     "validate_and_install.ps1",
     ".agents/agents/aegis_best_practice/agent.md",
     ".agents/agents/atlas_architecture/agent.md",
+    ".agents/agents/hermes_migration/agent.md",
     ".agents/agents/sage_governance/agent.md",
     ".agents/agents/sentinel_security/agent.md",
     ".agents/agents/spark_disruptor/agent.md",
     ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
     ".agents/skills/productivity-workload-governance/SKILL.md",
     ".agents/skills/quality-audit-governance/SKILL.md",
+    ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
     ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
     ".agents/skills/teams-standup-digest-notifier/SKILL.md",
     ".agents/skills/ticket-backlog-governance/SKILL.md",
     "Governance_Framework/AEGIS_Agent_System_Prompt.md",
+    "Governance_Framework/HERMES_Agent_System_Prompt.md",
     "Governance_Framework/SAGE_Agent_System_Prompt.md",
     ".agents/rules/sage-governance-prompt.md"
 )
@@ -409,15 +412,17 @@ function Invoke-KitUninstallation {
     $dirsToPrune = @(
         ".agents/agents/aegis_best_practice",
         ".agents/agents/atlas_architecture",
+        ".agents/agents/hermes_migration",
         ".agents/agents/sage_governance",
         ".agents/agents/sentinel_security",
         ".agents/agents/spark_disruptor",
         ".agents/skills/infrastructure-best-practice-analyser",
-        ".agents/skills/ticket-backlog-governance",
         ".agents/skills/productivity-workload-governance",
         ".agents/skills/quality-audit-governance",
-        ".agents/skills/teams-standup-digest-notifier",
+        ".agents/skills/server-migration-infrastructure-replication",
         ".agents/skills/support-team-governance-analytics-coaching",
+        ".agents/skills/teams-standup-digest-notifier",
+        ".agents/skills/ticket-backlog-governance",
         ".agents/rules",
         ".agents/agents",
         ".agents/skills",
@@ -611,7 +616,7 @@ if (Test-Path -LiteralPath $LocalBlocklistPath) {
 
 $Issues = [System.Collections.Generic.List[string]]::new()
 
-# STAGE 1: File Existence and Byte Limit Check (24 canonical files)
+# STAGE 1: File Existence and Byte Limit Check (27 canonical files)
 Write-Host "[STAGE 1/4] Checking canonical file structure and byte limits..." -ForegroundColor Yellow
 
 foreach ($relPath in $RequiredFiles) {
@@ -636,7 +641,7 @@ if (Test-Path -LiteralPath $geminiFile) {
 }
 
 if ($Issues.Count -eq 0) {
-    Write-Host "  [PASS] All 24 canonical files exist and GEMINI.md size is within limits." -ForegroundColor Green
+    Write-Host "  [PASS] All $($RequiredFiles.Count) canonical files exist and GEMINI.md size is within limits." -ForegroundColor Green
 } else {
     Write-Host "  [FAIL] Detected $($Issues.Count) structure/size issue(s)." -ForegroundColor Red
 }
@@ -689,7 +694,8 @@ $AllFiles = Get-ChildItem -Path $KitRoot -Recurse -File | Where-Object {
     $_.Extension -ne ".pyc" -and
     $_.FullName -notmatch '[\\/]\.git([\\/]|$)' -and
     $_.FullName -notmatch '[\\/]\.venv([\\/]|$)' -and
-    $_.FullName -notmatch '[\\/]__pycache__([\\/]|$)'
+    $_.FullName -notmatch '[\\/]__pycache__([\\/]|$)' -and
+    $_.FullName -notmatch '[\\/]\.agents[\\/]teamwork([\\/]|$)'
 }
 
 $decodedRules = @()

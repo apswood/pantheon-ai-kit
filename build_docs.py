@@ -69,6 +69,15 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "description": "Copy-paste configuration analysis prompt template for PAN-OS, FortiOS, Junos, Windows, and Linux, plus an untested future project blueprint for automated API config ingestion.",
     },
     {
+        "id": "hermes-master-prompt",
+        "title": "HERMES System Prompt & Migration Blueprint",
+        "short_title": "HERMES Prompt & Blueprint",
+        "category": "Workspace Rules & Templates",
+        "badge": "Copy-Paste Prompt",
+        "path": "Governance_Framework/HERMES_Agent_System_Prompt.md",
+        "description": "Copy-paste server migration and discovery analysis prompt template, plus end-to-end blueprint for Linux-to-Ansible target replication and cutovers.",
+    },
+    {
         "id": "env-template",
         "title": "Environment Schema (.env.template)",
         "short_title": ".env.template Schema",
@@ -94,6 +103,15 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "badge": "Agent Persona",
         "path": ".agents/agents/atlas_architecture/agent.md",
         "description": "Specialist advisor for modular system design, pure-function vs. I/O separation, and Python/PowerShell runtime parity.",
+    },
+    {
+        "id": "agent-hermes",
+        "title": "HERMES — Server Migration & Rebuild Specialist",
+        "short_title": "HERMES (Migration)",
+        "category": "Specialist Advisory Agents",
+        "badge": "Agent Persona",
+        "path": ".agents/agents/hermes_migration/agent.md",
+        "description": "Specialist advisor for legacy server discovery, reverse-engineering co-hosted services/EDL pipelines, auth preservation, and target Ansible replication.",
     },
     {
         "id": "agent-sage",
@@ -175,6 +193,15 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "badge": "Skill Runbook",
         "path": ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
         "description": "Cross-dimensional synthesis across Backlog, Quality, Productivity, and Customer Sentiment with 3-step coaching plans.",
+    },
+    {
+        "id": "skill-server-migration",
+        "title": "Server Migration & Infrastructure Replication Skill",
+        "short_title": "Server Migration & Rebuild",
+        "category": "Operational & KPI Skills",
+        "badge": "Skill Runbook",
+        "path": ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
+        "description": "Deterministic 4-phase server migration methodology, POSIX discovery checklists, Apache/EDL reverse-engineering, and AlmaLinux 9 Ansible replication suite.",
     },
 ]
 
