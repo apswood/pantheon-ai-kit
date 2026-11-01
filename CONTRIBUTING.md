@@ -32,6 +32,12 @@ Update `EXPECTED_FILES` in `validate_kit.py`, the fallback list in `setup.py`, `
 `validate_and_install.ps1` (and the uninstall prune lists in both installers if it introduces a new folder). Tests in
 `tests/test_setup.py` fail when the three lists disagree, and the validator fails when prose states a wrong count.
 
+## Adding an agent or skill
+
+Add it under `.agents/`, then place it in exactly one group in `GROUPS` (`build_docs.py`) and add its page to
+`DOCS_MANIFEST`. Mention it in the matching group section of `README.md` section 2. `tests/test_groups.py` fails if a
+member is missing from a group, appears twice, or the README, guide or `GEMINI.md` stop agreeing with `GROUPS`.
+
 ## Adding an Antigravity tool mapping
 
 If an agent uses a tool not in `TOOL_MAP` (`tools/sync_claude.py`), the sync fails loudly. Map it to the Claude Code

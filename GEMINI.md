@@ -49,21 +49,23 @@ and scoring algorithms from external API network I/O, credential retrieval, and 
 
 ### 4. Governance Framework & Specialist Multi-Agents (`.agents/`)
 - **Purpose**: Native Google Antigravity workspace customizations for automated governance and multi-perspective audits.
-- **Specialist Advisory Agents** (`.agents/agents/`):
-  - `aegis_best_practice`: Infrastructure Best-Practice Analyser auditing Palo Alto (PAN-OS), FortiGate (FortiOS), Juniper (Junos), Windows Server, and Linux Server against NIST, NCSC, vendor hardening, and UKFS-01..06 outcomes.
-  - `atlas_architecture`: Systems Architect auditing modularity, dual-stack parity, pure separation, and resilience.
-  - `hermes_migration`: Server Migration & Rebuild Specialist auditing legacy state, preserving auth, reverse-engineering Apache/EDL, and generating Ansible playbooks.
-  - `sage_governance`: Service Analytics Lead auditing operational KPI thresholds, pacing, throughput, and QA.
-  - `sentinel_security`: Security & Compliance Lead auditing secret isolation, API authentication, and PII protection.
-  - `spark_disruptor`: Contrarian Disruptor challenging operational orthodoxies, timesheet gaming, and complexity.
-- **Governance Skills** (`.agents/skills/`):
-  - `infrastructure-best-practice-analyser`: Multi-platform standards catalogue (NIST 800-41/800-53/CSF 2.0, NCSC, UKFS-01..06, ISO/CIS/PCI/SWIFT placeholders) for firewalls, routers, and Windows/Linux servers.
-  - `ticket-backlog-governance`: 4-criterion 145-point rubric, staleness rules, and top-5 prioritisation.
-  - `productivity-workload-governance`: 315-min daily pacing, 2 tasks/day throughput, and 10% proactive allocation.
-  - `quality-audit-governance`: Dual-metric scoring (`Resolve Pass %` vs Granular QA score), future-date pending override.
-  - `server-migration-infrastructure-replication`: 4-phase migration methodology, POSIX discovery, Apache/EDL reverse-engineering, and AlmaLinux 9 Ansible replication suite.
-  - `teams-standup-digest-notifier`: Operational standup card formatting and distribution.
-  - `support-team-governance-analytics-coaching`: 3-stage evidence-based coaching workflow.
+- **Kit Groups** (each agent and skill belongs to one group; purpose and principles are in `README.md` section 2):
+  - **Operational excellence**:
+    - (agent) `sage_governance`: Service Analytics Lead auditing operational KPI thresholds, pacing, throughput, and QA.
+    - (skill) `ticket-backlog-governance`: 4-criterion 145-point rubric, staleness rules, and top-5 prioritisation.
+    - (skill) `quality-audit-governance`: Dual-metric scoring (`Resolve Pass %` vs Granular QA score), future-date pending override.
+    - (skill) `teams-standup-digest-notifier`: Operational standup card formatting and distribution.
+    - (skill) `productivity-workload-governance`: 315-min daily pacing, 2 tasks/day throughput, and 10% proactive allocation.
+    - (skill) `support-team-governance-analytics-coaching`: 3-stage evidence-based coaching workflow.
+  - **Infrastructure and resilience**:
+    - (agent) `aegis_best_practice`: Infrastructure Best-Practice Analyser auditing Palo Alto (PAN-OS), FortiGate (FortiOS), Juniper (Junos), Windows Server, and Linux Server against NIST, NCSC, vendor hardening, and UKFS-01..06 outcomes.
+    - (agent) `hermes_migration`: Server Migration & Rebuild Specialist auditing legacy state, preserving auth, reverse-engineering Apache/EDL, and generating Ansible playbooks.
+    - (skill) `infrastructure-best-practice-analyser`: Multi-platform standards catalogue (NIST 800-41/800-53/CSF 2.0, NCSC, UKFS-01..06, ISO/CIS/PCI/SWIFT placeholders) for firewalls, routers, and Windows/Linux servers.
+    - (skill) `server-migration-infrastructure-replication`: 4-phase migration methodology, POSIX discovery, Apache/EDL reverse-engineering, and AlmaLinux 9 Ansible replication suite.
+  - **Build and secure**:
+    - (agent) `atlas_architecture`: Systems Architect auditing modularity, dual-stack parity, pure separation, and resilience.
+    - (agent) `sentinel_security`: Security & Compliance Lead auditing secret isolation, API authentication, and PII protection.
+    - (agent) `spark_disruptor`: Contrarian Disruptor challenging operational orthodoxies, timesheet gaming, and complexity.
 - **Standalone System Prompts & Blueprints** (`Governance_Framework/`):
   - `SAGE_Agent_System_Prompt.md`: Master system prompt for S.A.G.E. operational governance.
   - `AEGIS_Agent_System_Prompt.md`: Copy-paste infrastructure config analysis prompt template (`PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux`) + **Untested Future Project Blueprint** for an automated multi-vendor read-only API config ingestion pipeline.

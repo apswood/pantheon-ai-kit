@@ -99,7 +99,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "agent-aegis",
         "title": "AEGIS — Infrastructure Best-Practice Analyser",
         "short_title": "AEGIS (Best Practice)",
-        "category": "Specialist Advisory Agents",
+        "category": "Infrastructure and resilience",
         "badge": "Agent Persona",
         "path": ".agents/agents/aegis_best_practice/agent.md",
         "description": "Specialist auditor for Palo Alto (PAN-OS), FortiGate (FortiOS), Juniper (Junos), Windows Server, and Linux Server against NIST, NCSC, vendor guides, and UKFS-01..06.",
@@ -108,7 +108,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "agent-atlas",
         "title": "ATLAS — Technical Architecture Advisor",
         "short_title": "ATLAS (Architecture)",
-        "category": "Specialist Advisory Agents",
+        "category": "Build and secure",
         "badge": "Agent Persona",
         "path": ".agents/agents/atlas_architecture/agent.md",
         "description": "Specialist advisor for modular system design, pure-function vs. I/O separation, and Python/PowerShell runtime parity.",
@@ -117,7 +117,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "agent-hermes",
         "title": "HERMES — Server Migration & Rebuild Specialist",
         "short_title": "HERMES (Migration)",
-        "category": "Specialist Advisory Agents",
+        "category": "Infrastructure and resilience",
         "badge": "Agent Persona",
         "path": ".agents/agents/hermes_migration/agent.md",
         "description": "Specialist advisor for legacy server discovery, reverse-engineering co-hosted services/EDL pipelines, auth preservation, and target Ansible replication.",
@@ -126,7 +126,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "agent-sage",
         "title": "SAGE — Governance & Service Management",
         "short_title": "SAGE (Governance)",
-        "category": "Specialist Advisory Agents",
+        "category": "Operational excellence",
         "badge": "Agent Persona",
         "path": ".agents/agents/sage_governance/agent.md",
         "description": "Specialist advisor for ITIL 4 & ITIL 5 governance, SLA/staleness auditing, KPI calibration, and evidence-based coaching.",
@@ -135,7 +135,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "agent-sentinel",
         "title": "SENTINEL — Security & Compliance Auditor",
         "short_title": "SENTINEL (Security)",
-        "category": "Specialist Advisory Agents",
+        "category": "Build and secure",
         "badge": "Agent Persona",
         "path": ".agents/agents/sentinel_security/agent.md",
         "description": "Specialist advisor for zero-trust secret isolation, DPAPI/SecretStore integration, ACL handling, and PII redaction.",
@@ -144,7 +144,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "agent-spark",
         "title": "SPARK — Contrarian & Automation Innovator",
         "short_title": "SPARK (Innovation)",
-        "category": "Specialist Advisory Agents",
+        "category": "Build and secure",
         "badge": "Agent Persona",
         "path": ".agents/agents/spark_disruptor/agent.md",
         "description": "Specialist challenger focused on eliminating operational toil, challenging metric gaming, and automating root causes.",
@@ -153,7 +153,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "skill-best-practice",
         "title": "Infrastructure Best-Practice Analyser & Standards Catalogue",
         "short_title": "Best-Practice Analyser",
-        "category": "Operational & KPI Skills",
+        "category": "Infrastructure and resilience",
         "badge": "Skill Runbook",
         "path": ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
         "description": "Multi-platform standards catalogue (NIST 800-41/800-53/CSF 2.0, NCSC, UKFS-01..06, ISO/CIS/PCI/SWIFT placeholders) for PAN-OS, FortiOS, Junos, Windows & Linux.",
@@ -162,7 +162,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "skill-backlog",
         "title": "Ticket Backlog Governance Skill",
         "short_title": "Backlog Governance",
-        "category": "Operational & KPI Skills",
+        "category": "Operational excellence",
         "badge": "Skill Runbook",
         "path": ".agents/skills/ticket-backlog-governance/SKILL.md",
         "description": "Business-hours staleness engine, 5-tier age bucketing, and 4-criterion 145-point backlog prioritization rubric.",
@@ -171,7 +171,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "skill-productivity",
         "title": "Productivity & Workload Governance Skill",
         "short_title": "Productivity & Pacing",
-        "category": "Operational & KPI Skills",
+        "category": "Operational excellence",
         "badge": "Skill Runbook",
         "path": ".agents/skills/productivity-workload-governance/SKILL.md",
         "description": "315-minute daily time target, 80% weekly utilization ceiling, dynamic FTE capacity normalization, and automated event isolation.",
@@ -180,7 +180,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "skill-quality",
         "title": "Quality Audit Governance Skill",
         "short_title": "Quality Audit (QA)",
-        "category": "Operational & KPI Skills",
+        "category": "Operational excellence",
         "badge": "Skill Runbook",
         "path": ".agents/skills/quality-audit-governance/SKILL.md",
         "description": "Dual-metric QA framework combining Binary Resolve Pass % with Granular Diagnostic Score % and 6-month trends.",
@@ -189,7 +189,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "skill-digest",
         "title": "Teams Standup Digest Notifier Skill",
         "short_title": "Standup Digest Notifier",
-        "category": "Operational & KPI Skills",
+        "category": "Operational excellence",
         "badge": "Skill Runbook",
         "path": ".agents/skills/teams-standup-digest-notifier/SKILL.md",
         "description": "Daily morning standup Adaptive Card digest payload assembly, webhook delivery gating, and health indicators.",
@@ -198,7 +198,7 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "skill-coaching",
         "title": "Support Governance & Coaching Framework",
         "short_title": "Coaching Framework",
-        "category": "Operational & KPI Skills",
+        "category": "Operational excellence",
         "badge": "Skill Runbook",
         "path": ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
         "description": "Cross-dimensional synthesis across Backlog, Quality, Productivity, and Customer Sentiment with 3-step coaching plans.",
@@ -207,12 +207,79 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "id": "skill-server-migration",
         "title": "Server Migration & Infrastructure Replication Skill",
         "short_title": "Server Migration & Rebuild",
-        "category": "Operational & KPI Skills",
+        "category": "Infrastructure and resilience",
         "badge": "Skill Runbook",
         "path": ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
         "description": "Deterministic 4-phase server migration methodology, POSIX discovery checklists, Apache/EDL reverse-engineering, and AlmaLinux 9 Ansible replication suite.",
     },
 ]
+
+
+# Kit groups: how agents and skills are organised in the portal sidebar, home view and README.
+# Each agent/skill belongs to exactly one group (enforced by tests/test_groups.py).
+GROUPS: List[Dict[str, Any]] = [
+    {
+        "name": "Operational excellence",
+        "purpose": (
+            "Run service delivery the way the customer experiences it: spot stale work, hold quality to a clear "
+            "standard, keep team pacing fair and sustainable, and turn data into coaching rather than blame."
+        ),
+        "principles": [
+            ("Customer value", "Align every process to what the customer actually values."),
+            ("Continuous improvement", "Keep asking how work can be made faster, safer, easier and cheaper."),
+            ("Waste reduction", "Eliminate steps, delays and effort that add no value."),
+            ("Employee empowerment", "Train and trust staff at every level to spot issues and fix the process."),
+            ("Evidence over opinion", "Findings rest on recorded timestamps and system-of-record data."),
+            ("Blame-free by design", "Coaching describes the system and the evidence, never the person."),
+        ],
+        "members": ["agent-sage", "skill-backlog", "skill-quality", "skill-digest", "skill-productivity", "skill-coaching"],
+    },
+    {
+        "name": "Infrastructure and resilience",
+        "purpose": (
+            "Keep the estate secure, supportable and recoverable: audit configuration against recognised standards, "
+            "and migrate or rebuild legacy servers without losing what keeps them working."
+        ),
+        "principles": [
+            ("Secure and compliant by default", "Measure against NIST, NCSC and UKFS outcomes, not habit."),
+            ("Prevent rather than react", "Find drift and weak configuration before it becomes an incident."),
+            ("Preserve what works", "Migrations keep authentication, data and behaviour intact, and prove it."),
+            ("Read-only first", "Discover and assess without changing live systems; changes arrive as reviewed playbooks."),
+        ],
+        "members": ["agent-aegis", "agent-hermes", "skill-best-practice", "skill-server-migration"],
+    },
+    {
+        "name": "Build and secure",
+        "purpose": (
+            "Make what you build simple, testable and safe: sound architecture, secrets kept out of code, "
+            "and plans challenged before they are built."
+        ),
+        "principles": [
+            ("Simple over clever", "Deep modules and small interfaces; challenge complexity and toil."),
+            ("Clean seams", "Keep calculation logic pure and separate from I/O so it can be tested offline."),
+            ("Secrets never in code", "Isolate credentials, redact before logging, and use least privilege."),
+            ("Small, proven steps", "Tracer-bullet slices and fast feedback loops beat big-bang changes."),
+        ],
+        "members": ["agent-atlas", "agent-sentinel", "agent-spark"],
+    },
+]
+
+# "I want to..." entries: (goal, page id of the primary agent or skill). Shown on the home view and in the README.
+GOALS: List[Tuple[str, str]] = [
+    ("Find and chase stale tickets", "skill-backlog"),
+    ("Check ticket quality scores", "skill-quality"),
+    ("Prepare the daily standup", "skill-digest"),
+    ("Check engineer pacing and workload", "skill-productivity"),
+    ("Prepare a fair coaching note", "skill-coaching"),
+    ("Audit a firewall, router or server config", "skill-best-practice"),
+    ("Plan a server migration or rebuild", "skill-server-migration"),
+    ("Review architecture and code quality", "agent-atlas"),
+    ("Find exposed secrets or personal data", "agent-sentinel"),
+    ("Stress-test a plan and slice it into steps", "agent-spark"),
+]
+
+MEMBER_GROUP: Dict[str, str] = {pid: g["name"] for g in GROUPS for pid in g["members"]}
+CATEGORY_ORDER: List[str] = ["Onboarding & Guides"] + [g["name"] for g in GROUPS] + ["Workspace Rules & Templates"]
 
 
 EMOJI_RE = re.compile("(?:[\U0001F000-\U0001FAFF\u2705\u274c\u2753\u27a1\u26a1\ufe0f\u200d])+ ?")
@@ -603,22 +670,43 @@ def count_word(n: int) -> str:
 
 
 def render_home(pages_data: List[Dict[str, Any]]) -> str:
-    """Home view shown above the README: what the kit is, the one primary action, and the live tool switch."""
-    agent_count = sum(1 for p in pages_data if p["category"] == "Specialist Advisory Agents")
-    skill_count = sum(1 for p in pages_data if p["category"] == "Operational & KPI Skills")
+    """Home view shown above the README: what the kit is, the one primary action, goals, and the grouped catalogue."""
+    by_id = {p["id"]: p for p in pages_data}
+    agent_count = sum(1 for p in pages_data if p["kind"] == "agent")
+    skill_count = sum(1 for p in pages_data if p["kind"] == "skill")
 
-    def rows(category: str) -> str:
-        items = []
-        for p in pages_data:
-            if p["category"] != category:
-                continue
-            pid = p["id"]
-            items.append(
-                f'<li><a class="home-row" href="#{pid}" onclick="navigateToPage(\'{pid}\'); return false;">'
-                f'<span class="home-row-name">{html.escape(p["short_title"])}</span>'
-                f'<span class="home-row-desc">{html.escape(p["description"])}</span></a></li>'
-            )
-        return "".join(items)
+    def link(pid: str, inner: str, cls: str) -> str:
+        return f'<a class="{cls}" href="#{pid}" onclick="navigateToPage(\'{pid}\'); return false;">{inner}</a>'
+
+    def row(pid: str) -> str:
+        p = by_id[pid]
+        inner = (
+            f'<span class="home-row-name">{html.escape(p["short_title"])}'
+            f'<span class="home-row-kind">{html.escape(p["kind"])}</span></span>'
+            f'<span class="home-row-desc">{html.escape(p["description"])}</span>'
+        )
+        return f"<li>{link(pid, inner, 'home-row')}</li>"
+
+    def group_block(g: Dict[str, Any]) -> str:
+        principles = "".join(
+            f"<li><strong>{html.escape(t)}.</strong> {html.escape(d)}</li>" for t, d in g["principles"]
+        )
+        rows = "".join(row(pid) for pid in g["members"])
+        return (
+            '<section class="home-group">'
+            f"<h2>{html.escape(g['name'])}</h2>"
+            f'<p class="home-group-purpose">{html.escape(g["purpose"])}</p>'
+            f'<ul class="home-list">{rows}</ul>'
+            f'<details class="principles"><summary>Core principles</summary><ul>{principles}</ul></details>'
+            "</section>"
+        )
+
+    def goal_row(goal: str, pid: str) -> str:
+        target = html.escape(by_id[pid]["short_title"])
+        inner = html.escape(goal) + '<span class="goal-target">' + target + "</span>"
+        return "<li>" + link(pid, inner, "goal-row") + "</li>"
+
+    goals = "".join(goal_row(goal, pid) for goal, pid in GOALS)
 
     live = (
         '<div class="live-panel">'
@@ -648,10 +736,9 @@ def render_home(pages_data: List[Dict[str, Any]]) -> str:
         "<a class=\"link-quiet\" href=\"#setup-guide\" onclick=\"navigateToPage('setup-guide'); return false;\">Read the setup guide</a>"
         "</div></div>"
         f"{live}</div>"
-        '<div class="home-lists">'
-        f'<div><h2>{count_word(agent_count).capitalize()} specialist agents</h2><ul class="home-list">{rows("Specialist Advisory Agents")}</ul></div>'
-        f'<div><h2>{count_word(skill_count).capitalize()} operational skills</h2><ul class="home-list">{rows("Operational & KPI Skills")}</ul></div>'
-        "</div></section>"
+        f'<div class="home-goals"><h2>I want to&hellip;</h2><ul class="goal-list">{goals}</ul></div>'
+        f'<div class="home-groups">{"".join(group_block(g) for g in GROUPS)}</div>'
+        "</section>"
     )
 
 
@@ -750,6 +837,7 @@ def build_docs_html(kit_dir: Path) -> Path:
                 "short_title": entry["short_title"],
                 "category": entry["category"],
                 "badge": entry["badge"],
+                "kind": "agent" if entry["path"].startswith(".agents/agents/") else "skill" if entry["path"].startswith(".agents/skills/") else "",
                 "path": entry["path"],
                 "description": entry["description"],
                 "html": rendered_html,
@@ -759,6 +847,10 @@ def build_docs_html(kit_dir: Path) -> Path:
                 "byte_size": len(raw_content.encode("utf-8")),
             }
         )
+
+    # Sidebar order: guides, then the kit groups (members in the order GROUPS lists them), then templates.
+    group_pos = {pid: i for g in GROUPS for i, pid in enumerate(g["members"])}
+    pages_data.sort(key=lambda p: (CATEGORY_ORDER.index(p["category"]), group_pos.get(p["id"], 0)))
 
     # Group pages by category for sidebar rendering
     categories: Dict[str, List[Dict[str, Any]]] = {}
@@ -775,7 +867,7 @@ def build_docs_html(kit_dir: Path) -> Path:
                 f'<button type="button" class="nav-item{active_cls}" id="nav-{item["id"]}" '
                 f'onclick="navigateToPage(\'{item["id"]}\')">'
                 f'<span class="nav-item-title">{html.escape(item["short_title"])}</span>'
-                f'<span class="nav-item-badge">{html.escape(item["badge"])}</span>'
+                f'<span class="nav-item-badge">{html.escape(item["kind"])}</span>'
                 f"</button>"
             )
         sidebar_nav_html.append("</div>")

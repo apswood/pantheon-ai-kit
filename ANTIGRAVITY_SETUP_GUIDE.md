@@ -1038,6 +1038,18 @@ The validation pipeline executes four discrete checks:
 ### 7.3 Activating the 6 Specialist Advisory Agents
 The Setup Kit embeds six distinct multi-agent personas configured to advise on infrastructure hardening, enterprise systems architecture, service delivery governance, security compliance, and process optimization.
 
+#### The Three Kit Groups
+
+Agents and skills are organised by the job they do. The full principles for each group are in the [README](README.md#2-whats-included-at-a-glance).
+
+| Group | Purpose | Agents | Skills |
+| :--- | :--- | :--- | :--- |
+| **Operational excellence** | Run service delivery the way the customer experiences it: spot stale work, hold quality to a clear standard, keep team pacing fair and sustainable, and turn data into coaching rather than blame. | `sage_governance` | `ticket-backlog-governance`, `quality-audit-governance`, `teams-standup-digest-notifier`, `productivity-workload-governance`, `support-team-governance-analytics-coaching` |
+| **Infrastructure and resilience** | Keep the estate secure, supportable and recoverable: audit configuration against recognised standards, and migrate or rebuild legacy servers without losing what keeps them working. | `aegis_best_practice`, `hermes_migration` | `infrastructure-best-practice-analyser`, `server-migration-infrastructure-replication` |
+| **Build and secure** | Make what you build simple, testable and safe: sound architecture, secrets kept out of code, and plans challenged before they are built. | `atlas_architecture`, `sentinel_security`, `spark_disruptor` | none yet |
+
+#### Invoking an Agent
+
 You can invoke any specialist directly in Antigravity chat using the `@` mention syntax:
 
 ```
@@ -1062,37 +1074,37 @@ You can invoke any specialist directly in Antigravity chat using the `@` mention
 
 #### Specialist Advisory Team Capabilities Matrix
 
-| Agent Specialist | Acronym Meaning | Primary Architectural Responsibility | When to Engage |
-| :--- | :--- | :--- | :--- |
-| **AEGIS** | Architecture, Estate Governance & Infrastructure Standards Analyser | Audits Palo Alto (`PAN-OS`), FortiGate (`FortiOS`), Juniper (`Junos`), Windows Server, and Linux Server against NIST, NCSC, vendor guides, and `UKFS-01..06`. | Firewall/router rule-base audits, server hardening reviews, operational resilience mapping, API config pipeline design. |
-| **ATLAS** | Architecture & Technology Lead for Application Scalability | Deep modules, clean test seams, pure-vs-I/O separation, two-axis code reviews, cross-runtime parity, tight bug feedback loops. | Designing new modules, reviewing PR diffs, refactoring monolithic scripts, diagnosing regressions. |
-| **HERMES** | Host Estate Reverse-Engineering & Migration Execution Specialist | Legacy server discovery, undocumented service reverse engineering, authentication preservation, target AlmaLinux 9 Ansible replication, and pre-cutover testing. | EOL Linux migrations (CentOS to AlmaLinux 9), reverse-engineering Apache/EDL services, PHP2Shell CVE mitigations, cutover and rollback planning. |
-| **SAGE** | Service Analytics & Governance Expert | ITIL v4 alignment, 145-pt backlog scoring, 315m pacing, dual quality auditing, 3-step evidence-based coaching. | Backlog triage, capacity reviews, quality scorecard analysis, standup reporting. |
-| **SENTINEL** | Security Enforcement, Network Trust & Integrity Evaluation | Credential isolation, `<REDACTED>` diagnostic scrubbing, Windows SecretStore, least-privilege ACLs, deterministic security checks. | Pre-deployment security reviews, credential audits, building automated security guardrails. |
-| **SPARK** | Strategic Pivot, Assumption-challenging & Radical Kaizen | Design-tree frontier interviewing ("grilling"), tracer-bullet vertical slicing, eliminating operational toil, questioning metric gaming. | Project kickoff interviews, breaking specs into vertical slices, process simplification. |
+| Agent Specialist | Group | Acronym Meaning | Primary Architectural Responsibility | When to Engage |
+| :--- | :--- | :--- | :--- | :--- |
+| **AEGIS** | Infrastructure and resilience | Architecture, Estate Governance & Infrastructure Standards Analyser | Audits Palo Alto (`PAN-OS`), FortiGate (`FortiOS`), Juniper (`Junos`), Windows Server, and Linux Server against NIST, NCSC, vendor guides, and `UKFS-01..06`. | Firewall/router rule-base audits, server hardening reviews, operational resilience mapping, API config pipeline design. |
+| **ATLAS** | Build and secure | Architecture & Technology Lead for Application Scalability | Deep modules, clean test seams, pure-vs-I/O separation, two-axis code reviews, cross-runtime parity, tight bug feedback loops. | Designing new modules, reviewing PR diffs, refactoring monolithic scripts, diagnosing regressions. |
+| **HERMES** | Infrastructure and resilience | Host Estate Reverse-Engineering & Migration Execution Specialist | Legacy server discovery, undocumented service reverse engineering, authentication preservation, target AlmaLinux 9 Ansible replication, and pre-cutover testing. | EOL Linux migrations (CentOS to AlmaLinux 9), reverse-engineering Apache/EDL services, PHP2Shell CVE mitigations, cutover and rollback planning. |
+| **SAGE** | Operational excellence | Service Analytics & Governance Expert | ITIL v4 alignment, 145-pt backlog scoring, 315m pacing, dual quality auditing, 3-step evidence-based coaching. | Backlog triage, capacity reviews, quality scorecard analysis, standup reporting. |
+| **SENTINEL** | Build and secure | Security Enforcement, Network Trust & Integrity Evaluation | Credential isolation, `<REDACTED>` diagnostic scrubbing, Windows SecretStore, least-privilege ACLs, deterministic security checks. | Pre-deployment security reviews, credential audits, building automated security guardrails. |
+| **SPARK** | Build and secure | Strategic Pivot, Assumption-challenging & Radical Kaizen | Design-tree frontier interviewing ("grilling"), tracer-bullet vertical slicing, eliminating operational toil, questioning metric gaming. | Project kickoff interviews, breaking specs into vertical slices, process simplification. |
 
 ### 7.4 On-Demand Execution of the 7 Governance & Best-Practice Skills
 Antigravity uses **progressive disclosure** for skills: skills are not loaded into context until their YAML `description` context pointer matches your task:
 
-1. **Infrastructure Best-Practice Analyser (`infrastructure-best-practice-analyser`)**:
+1. **Infrastructure Best-Practice Analyser (`infrastructure-best-practice-analyser`)** — *Infrastructure and resilience*:
    - *Triggers*: `audit firewall config`, `assess PAN-OS / FortiOS / Junos / Windows / Linux`, `map to NIST 800-53 / NCSC / UKFS-01..06`, `Test Library 1.1.0`.
    - *Output*: Prioritised multi-platform findings mapped to public NIST/NCSC/vendor controls, UKFS operational resilience outcomes, licensed placeholder IDs (`ISO 27001`, `CIS`, `PCI DSS`, `SWIFT`), and mandatory caveats.
-2. **Ticket Backlog Governance (`ticket-backlog-governance`)**:
+2. **Ticket Backlog Governance (`ticket-backlog-governance`)** — *Operational excellence*:
    - *Triggers*: `evaluate backlog stagnancy`, `calculate priority scores`, `top 5 tickets for standup`, `age band distribution`.
    - *Output*: Backlog health summary table, 5-tier age breakdown, and Top 5 Standup table highlighting multi-day blockers.
-3. **Productivity & Workload Governance (`productivity-workload-governance`)**:
+3. **Productivity & Workload Governance (`productivity-workload-governance`)** — *Operational excellence*:
    - *Triggers*: `analyze engineer time pacing`, `daily utilization audit`, `closed ticket throughput`, `flag time anomalies`.
    - *Output*: Dual pacing table comparing actual minutes against the 315-minute target, pro-rated intraday curves, and sub-minute logging alerts.
-4. **Quality Audit Governance (`quality-audit-governance`)**:
+4. **Quality Audit Governance (`quality-audit-governance`)** — *Operational excellence*:
    - *Triggers*: `generate quality scorecard`, `audit resolve pass rate`, `evaluate KB0016486 rubric`, `check future date pending`.
    - *Output*: `Pass Rate % (Granular Score %)` dual tables, root cause taxonomy splits, and customer communication ratings.
-5. **Teams Standup Digest Notifier (`teams-standup-digest-notifier`)**:
+5. **Teams Standup Digest Notifier (`teams-standup-digest-notifier`)** — *Operational excellence*:
    - *Triggers*: `format teams digest card`, `generate standup markdown`, `post backlog summary to teams`.
    - *Output*: Theme-safe Adaptive Card or HTML markdown payload highlighting Top 5 critical items per engineering squad.
-6. **Support Governance Analytics Coaching (`support-team-governance-analytics-coaching`)**:
+6. **Support Governance Analytics Coaching (`support-team-governance-analytics-coaching`)** — *Operational excellence*:
    - *Triggers*: `draft engineer coaching note`, `remediate low time capture`, `discuss ticket stagnancy`, `evidence-based 1-on-1`.
    - *Output*: Objective 3-step coaching scripts (Observation -> Impact & Context -> Constructive Alignment) written in a supportive, blameless tone.
-7. **Server Migration & Infrastructure Replication (`server-migration-infrastructure-replication`)**:
+7. **Server Migration & Infrastructure Replication (`server-migration-infrastructure-replication`)** — *Infrastructure and resilience*:
    - *Triggers*: `migrate server`, `reverse-engineer Apache / EDL`, `replicate CentOS to AlmaLinux 9`, `Ansible replication suite`, `cutover verification`.
    - *Output*: 4-phase migration plan, POSIX read-only discovery checklist, Apache/EDL/WebDAV matrix, CVE-2026-109618/109619 exposure controls, parameterized Ansible role architecture, and pre-cutover validation runbook.
 

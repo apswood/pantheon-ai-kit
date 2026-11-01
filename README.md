@@ -97,32 +97,81 @@ python setup.py --uninstall --target-dir "C:\Workspaces\ServiceDeliveryOps" -y
 
 ## 2. What's Included at a Glance
 
-### 2.1 Six Specialist Multi-Agent Personas (`.agents/agents/`)
-Invoke any specialist agent in isolated subagent context using `@agent_name` or natural language prompts:
+The kit ships **6 specialist agents**, **7 on-demand skills** and **3 standalone system prompts**, organised into three groups by the job they do. Agents run in an isolated context (`@agent_name` or plain language); skills load on demand (`/skill-name`) using **progressive disclosure**, so only a lightweight pointer is loaded at startup.
 
-| Agent | Persona & Mandate | Example Invocation | Documentation |
-| :--- | :--- | :--- | :--- |
-| **`aegis_best_practice`** | **AEGIS** — Multi-platform infrastructure hardening & resilience auditor (`PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux` against NIST, NCSC, and `UKFS-01..06`). | `"Ask AEGIS to audit this FortiGate / Palo Alto config against NIST 800-41 and UKFS outcomes."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-aegis) · [Source](.agents/agents/aegis_best_practice/agent.md) |
-| **`atlas_architecture`** | **ATLAS** — Systems architecture, deep modules, clean test seams, pure vs. I/O separation, and Python/PowerShell parity. | `"Ask ATLAS to review our API client for retry backoff and pure-function separation."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-atlas) · [Source](.agents/agents/atlas_architecture/agent.md) |
-| **`hermes_migration`** | **HERMES** — Server migration, legacy reverse-engineering, authentication preservation, and target-state infrastructure replication (AlmaLinux 9 & Ansible). | `"Ask HERMES to reverse-engineer our legacy CentOS 7 server and generate an AlmaLinux 9 Ansible replication playbook."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-hermes) · [Source](.agents/agents/hermes_migration/agent.md) |
-| **`sage_governance`** | **SAGE** — ITIL 4/5 service delivery governance, SLA staleness, capacity pacing, QA scorecards, and evidence-based coaching. | `"Have SAGE audit this week's engineer time pacing and backlog stagnancy report."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-sage) · [Source](.agents/agents/sage_governance/agent.md) |
-| **`sentinel_security`** | **SENTINEL** — Zero-trust secret isolation (`.env`, Windows DPAPI), `<REDACTED>` scrubbing, API auth, and GDPR PII hygiene. | `"Ask SENTINEL to scan the workspace for exposed secrets or hardcoded tenant IDs."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-sentinel) · [Source](.agents/agents/sentinel_security/agent.md) |
-| **`spark_disruptor`** | **SPARK** — Design-tree frontier interviewing (`/grill-me`), tracer-bullet vertical slicing, and contrarian Kaizen simplification. | `"Ask SPARK to grill our new config collector design and slice it into tracer-bullet tickets."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-spark) · [Source](.agents/agents/spark_disruptor/agent.md) |
+### 2.1 Start with your goal
 
-### 2.2 Seven On-Demand Operational & Infrastructure Skills (`.agents/skills/`)
-Skills use **progressive disclosure**—only their lightweight YAML context pointers load at startup, hydrating full mathematical rubrics and standards catalogues on demand:
+| I want to… | Use | Invoke |
+| :--- | :--- | :--- |
+| Find and chase stale tickets | [Backlog Governance](https://apswood.github.io/pantheon-ai-kit/#skill-backlog) | `/ticket-backlog-governance` |
+| Check ticket quality scores | [Quality Audit (QA)](https://apswood.github.io/pantheon-ai-kit/#skill-quality) | `/quality-audit-governance` |
+| Prepare the daily standup | [Standup Digest Notifier](https://apswood.github.io/pantheon-ai-kit/#skill-digest) | `/teams-standup-digest-notifier` |
+| Check engineer pacing and workload | [Productivity & Pacing](https://apswood.github.io/pantheon-ai-kit/#skill-productivity) | `/productivity-workload-governance` |
+| Prepare a fair coaching note | [Coaching Framework](https://apswood.github.io/pantheon-ai-kit/#skill-coaching) | `/support-team-governance-analytics-coaching` |
+| Audit a firewall, router or server config | [Best-Practice Analyser](https://apswood.github.io/pantheon-ai-kit/#skill-best-practice) | `/infrastructure-best-practice-analyser` |
+| Plan a server migration or rebuild | [Server Migration & Rebuild](https://apswood.github.io/pantheon-ai-kit/#skill-server-migration) | `/server-migration-infrastructure-replication` |
+| Review architecture and code quality | [ATLAS (Architecture)](https://apswood.github.io/pantheon-ai-kit/#agent-atlas) | `@atlas_architecture` |
+| Find exposed secrets or personal data | [SENTINEL (Security)](https://apswood.github.io/pantheon-ai-kit/#agent-sentinel) | `@sentinel_security` |
+| Stress-test a plan and slice it into steps | [SPARK (Innovation)](https://apswood.github.io/pantheon-ai-kit/#agent-spark) | `@spark_disruptor` |
 
-| Skill | Core Thresholds, Formulas & Standards | Slash / Prompt Trigger | Documentation |
-| :--- | :--- | :--- | :--- |
-| **`infrastructure-best-practice-analyser`** | `Test Library 1.1.0` across `PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux`; NIST 800-41/800-53/CSF 2.0, NCSC, `UKFS-01..06`, ISO/CIS/PCI/SWIFT placeholders. | `/infrastructure-best-practice-analyser` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-best-practice) · [Source](.agents/skills/infrastructure-best-practice-analyser/SKILL.md) |
-| **`ticket-backlog-governance`** | Business-hours staleness (`>= 8.5h` Incident / `>= 17.0h` Request, Mon–Fri 09:00–17:30), 5-tier age bands, 145-point priority rubric. | `/ticket-backlog-governance` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-backlog) · [Source](.agents/skills/ticket-backlog-governance/SKILL.md) |
-| **`productivity-workload-governance`** | `315 min/day` (5.25h / 70%) direct logging target, `80%` utilization ceiling, `2 closed tasks/day` organic throughput, `>= 10%` proactive ratio. | `/productivity-workload-governance` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-productivity) · [Source](.agents/skills/productivity-workload-governance/SKILL.md) |
-| **`quality-audit-governance`** | Dual-metric QA scorecard: `Resolve Pass % (Granular Score %)`, KB0016486 rubric, future-date `Pending` override (`HEALTHY`). | `/quality-audit-governance` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-quality) · [Source](.agents/skills/quality-audit-governance/SKILL.md) |
-| **`teams-standup-digest-notifier`** | Daily standup Adaptive Cards / HTML payloads capped at **Top 5 tickets per squad**, `🔥 Multi-Day` blocker badges (`>= 3d`). | `/teams-standup-digest-notifier` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-digest) · [Source](.agents/skills/teams-standup-digest-notifier/SKILL.md) |
-| **`support-team-governance-analytics-coaching`** | Non-accusatory **3-step evidence-based coaching** plans (Objective Observation $\rightarrow$ Operational Impact $\rightarrow$ Constructive Alignment). | `/support-team-governance-analytics-coaching` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-coaching) · [Source](.agents/skills/support-team-governance-analytics-coaching/SKILL.md) |
-| **`server-migration-infrastructure-replication`** | 4-phase migration methodology, read-only POSIX discovery, Apache vhosts/EDL reverse-engineering, and AlmaLinux 9 Ansible replication suite. | `/server-migration-infrastructure-replication` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-server-migration) · [Source](.agents/skills/server-migration-infrastructure-replication/SKILL.md) |
+### 2.2 Operational excellence
 
-### 2.3 Standalone System Prompts & Copy-Paste Templates (`Governance_Framework/`)
+Run service delivery the way the customer experiences it: spot stale work, hold quality to a clear standard, keep team pacing fair and sustainable, and turn data into coaching rather than blame.
+
+**Core principles**
+
+- **Customer value**: Align every process to what the customer actually values.
+- **Continuous improvement**: Keep asking how work can be made faster, safer, easier and cheaper.
+- **Waste reduction**: Eliminate steps, delays and effort that add no value.
+- **Employee empowerment**: Train and trust staff at every level to spot issues and fix the process.
+- **Evidence over opinion**: Findings rest on recorded timestamps and system-of-record data.
+- **Blame-free by design**: Coaching describes the system and the evidence, never the person.
+
+| Type | Name | What it does | Invoke | Documentation |
+| :--- | :--- | :--- | :--- | :--- |
+| Agent | **`sage_governance`** | **SAGE** — ITIL 4/5 service delivery governance, SLA staleness, capacity pacing, QA scorecards, and evidence-based coaching. | `"Have SAGE audit this week's engineer time pacing and backlog stagnancy report."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-sage) · [Source](.agents/agents/sage_governance/agent.md) |
+| Skill | **`ticket-backlog-governance`** | Business-hours staleness (`>= 8.5h` Incident / `>= 17.0h` Request, Mon–Fri 09:00–17:30), 5-tier age bands, 145-point priority rubric. | `/ticket-backlog-governance` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-backlog) · [Source](.agents/skills/ticket-backlog-governance/SKILL.md) |
+| Skill | **`quality-audit-governance`** | Dual-metric QA scorecard: `Resolve Pass % (Granular Score %)`, KB0016486 rubric, future-date `Pending` override (`HEALTHY`). | `/quality-audit-governance` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-quality) · [Source](.agents/skills/quality-audit-governance/SKILL.md) |
+| Skill | **`teams-standup-digest-notifier`** | Daily standup Adaptive Cards / HTML payloads capped at **Top 5 tickets per squad**, `🔥 Multi-Day` blocker badges (`>= 3d`). | `/teams-standup-digest-notifier` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-digest) · [Source](.agents/skills/teams-standup-digest-notifier/SKILL.md) |
+| Skill | **`productivity-workload-governance`** | `315 min/day` (5.25h / 70%) direct logging target, `80%` utilization ceiling, `2 closed tasks/day` organic throughput, `>= 10%` proactive ratio. | `/productivity-workload-governance` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-productivity) · [Source](.agents/skills/productivity-workload-governance/SKILL.md) |
+| Skill | **`support-team-governance-analytics-coaching`** | Non-accusatory **3-step evidence-based coaching** plans (Objective Observation $\rightarrow$ Operational Impact $\rightarrow$ Constructive Alignment). | `/support-team-governance-analytics-coaching` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-coaching) · [Source](.agents/skills/support-team-governance-analytics-coaching/SKILL.md) |
+
+### 2.3 Infrastructure and resilience
+
+Keep the estate secure, supportable and recoverable: audit configuration against recognised standards, and migrate or rebuild legacy servers without losing what keeps them working.
+
+**Core principles**
+
+- **Secure and compliant by default**: Measure against NIST, NCSC and UKFS outcomes, not habit.
+- **Prevent rather than react**: Find drift and weak configuration before it becomes an incident.
+- **Preserve what works**: Migrations keep authentication, data and behaviour intact, and prove it.
+- **Read-only first**: Discover and assess without changing live systems; changes arrive as reviewed playbooks.
+
+| Type | Name | What it does | Invoke | Documentation |
+| :--- | :--- | :--- | :--- | :--- |
+| Agent | **`aegis_best_practice`** | **AEGIS** — Multi-platform infrastructure hardening & resilience auditor (`PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux` against NIST, NCSC, and `UKFS-01..06`). | `"Ask AEGIS to audit this FortiGate / Palo Alto config against NIST 800-41 and UKFS outcomes."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-aegis) · [Source](.agents/agents/aegis_best_practice/agent.md) |
+| Agent | **`hermes_migration`** | **HERMES** — Server migration, legacy reverse-engineering, authentication preservation, and target-state infrastructure replication (AlmaLinux 9 & Ansible). | `"Ask HERMES to reverse-engineer our legacy CentOS 7 server and generate an AlmaLinux 9 Ansible replication playbook."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-hermes) · [Source](.agents/agents/hermes_migration/agent.md) |
+| Skill | **`infrastructure-best-practice-analyser`** | `Test Library 1.1.0` across `PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux`; NIST 800-41/800-53/CSF 2.0, NCSC, `UKFS-01..06`, ISO/CIS/PCI/SWIFT placeholders. | `/infrastructure-best-practice-analyser` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-best-practice) · [Source](.agents/skills/infrastructure-best-practice-analyser/SKILL.md) |
+| Skill | **`server-migration-infrastructure-replication`** | 4-phase migration methodology, read-only POSIX discovery, Apache vhosts/EDL reverse-engineering, and AlmaLinux 9 Ansible replication suite. | `/server-migration-infrastructure-replication` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#skill-server-migration) · [Source](.agents/skills/server-migration-infrastructure-replication/SKILL.md) |
+
+### 2.4 Build and secure
+
+Make what you build simple, testable and safe: sound architecture, secrets kept out of code, and plans challenged before they are built.
+
+**Core principles**
+
+- **Simple over clever**: Deep modules and small interfaces; challenge complexity and toil.
+- **Clean seams**: Keep calculation logic pure and separate from I/O so it can be tested offline.
+- **Secrets never in code**: Isolate credentials, redact before logging, and use least privilege.
+- **Small, proven steps**: Tracer-bullet slices and fast feedback loops beat big-bang changes.
+
+| Type | Name | What it does | Invoke | Documentation |
+| :--- | :--- | :--- | :--- | :--- |
+| Agent | **`atlas_architecture`** | **ATLAS** — Systems architecture, deep modules, clean test seams, pure vs. I/O separation, and Python/PowerShell parity. | `"Ask ATLAS to review our API client for retry backoff and pure-function separation."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-atlas) · [Source](.agents/agents/atlas_architecture/agent.md) |
+| Agent | **`sentinel_security`** | **SENTINEL** — Zero-trust secret isolation (`.env`, Windows DPAPI), `<REDACTED>` scrubbing, API auth, and GDPR PII hygiene. | `"Ask SENTINEL to scan the workspace for exposed secrets or hardcoded tenant IDs."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-sentinel) · [Source](.agents/agents/sentinel_security/agent.md) |
+| Agent | **`spark_disruptor`** | **SPARK** — Design-tree frontier interviewing (`/grill-me`), tracer-bullet vertical slicing, and contrarian Kaizen simplification. | `"Ask SPARK to grill our new config collector design and slice it into tracer-bullet tickets."` | [HTML Docs](https://apswood.github.io/pantheon-ai-kit/#agent-spark) · [Source](.agents/agents/spark_disruptor/agent.md) |
+
+### 2.5 Standalone System Prompts & Copy-Paste Templates (`Governance_Framework/`)
 - **[`AEGIS_Agent_System_Prompt.md`](https://apswood.github.io/pantheon-ai-kit/#aegis-master-prompt)** ([Source](Governance_Framework/AEGIS_Agent_System_Prompt.md)): Ready-to-use copy-paste infrastructure configuration audit prompt (`<REDACTED>` pre-paste checklist + `PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux` assessment) and an architectural blueprint for an automated multi-vendor read-only API ingestion pipeline.
 - **[`HERMES_Agent_System_Prompt.md`](https://apswood.github.io/pantheon-ai-kit/#hermes-master-prompt)** ([Source](Governance_Framework/HERMES_Agent_System_Prompt.md)): Ready-to-use copy-paste server migration and discovery analysis prompt (`<REDACTED>` pre-paste checklist + reverse-engineering & AlmaLinux 9 Ansible target replication runbook).
 - **[`SAGE_Agent_System_Prompt.md`](https://apswood.github.io/pantheon-ai-kit/#sage-master-prompt)** ([Source](Governance_Framework/SAGE_Agent_System_Prompt.md)): Standalone master system prompt for ITIL 4 & ITIL 5 service operations governance and coaching.

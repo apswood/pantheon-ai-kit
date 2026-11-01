@@ -13,6 +13,9 @@ First tagged release.
   against `kit_manifest.json`.
 - CI: generated-file drift checks, cross-platform validation, pytest, ruff, PSScriptAnalyzer and gitleaks.
 - `tests/` pytest suite; `examples/` synthetic inputs; `CONTRIBUTING.md`, `SECURITY.md`.
+- Kit groups: agents and skills are organised into Operational excellence, Infrastructure and resilience, and Build and secure,
+  each with a purpose and core principles. The portal sidebar and home view, README section 2, the setup guide and
+  `GEMINI.md` all follow the groups, and the portal home adds an "I want to..." shortcut list.
 - Validator: prose file-count check, warning at 80% of the `GEMINI.md` size budget.
 
 ### Fixed

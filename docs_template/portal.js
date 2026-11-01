@@ -268,7 +268,7 @@
 
     function initReveals() {
       if (prefersReducedMotion || !("IntersectionObserver" in window)) return;
-      const selector = ".home h1, .home-sentence, .home-actions, .live-panel, .home-lists > div, .article-body > .doc-h2, .article-body > .code-block-wrapper, .article-body > .table-responsive, .article-body > .callout, .article-body > .frontmatter-card, .article-body > .invoke-card";
+      const selector = ".home h1, .home-sentence, .home-actions, .live-panel, .home-goals, .home-group, .article-body > .doc-h2, .article-body > .code-block-wrapper, .article-body > .table-responsive, .article-body > .callout, .article-body > .frontmatter-card, .article-body > .invoke-card";
       document.querySelectorAll(selector).forEach((el, i) => {
         el.classList.add("reveal");
         el.style.setProperty("--d", Math.min(i % 4, 3) * 70 + "ms");
