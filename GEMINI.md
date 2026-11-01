@@ -50,6 +50,8 @@ and scoring algorithms from external API network I/O, credential retrieval, and 
 ### 4. Governance Framework & Specialist Multi-Agents (`.agents/`)
 - **Purpose**: Native Google Antigravity workspace customizations for automated governance and multi-perspective audits.
 - **Kit Groups** (each agent and skill belongs to one group; purpose and principles are in `README.md` section 2):
+  - **Getting started**:
+    - (skill) `pantheon-setup`: Role-based guided onboarding; `setup.py --profile` installs only the chosen groups, tools, integrations and threshold overrides.
   - **Operational excellence**:
     - (agent) `sage_governance`: Service Analytics Lead auditing operational KPI thresholds, pacing, throughput, and QA.
     - (skill) `ticket-backlog-governance`: 4-criterion 145-point rubric, staleness rules, and top-5 prioritisation.
@@ -178,6 +180,7 @@ pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir 
 - [x] **Docs Portal Redesign**: "framed sheet" reader with an Antigravity / Claude Code switch, embedded IBM Plex fonts, stacked tables on phones, template in `docs_template/`.
 - [x] **Server Migration & Rebuild Framework (Milestone 1)**: Deployed HERMES specialist agent (`hermes_migration`), companion skill (`server-migration-infrastructure-replication`), standalone prompt (`HERMES_Agent_System_Prompt.md`), and integrated across all 7 kit lifecycle touchpoints.
 - [x] **OpenAI Codex Compatibility (Untested in Codex)**: `tools/sync_codex.py` generates `AGENTS.md` (points Codex to this file and the S.A.G.E. rule; no copy, as Antigravity also reads `AGENTS.md`) and `.codex/agents/*.toml`; Codex reads `.agents/skills/` natively.
+- [x] **Guided Setup (`/pantheon-setup`)**: "Getting started" group; `tools/kit_catalog.py` (roles, integrations, thresholds) drives `setup.py --detect/--profile` (dry-run plan, idempotent, removes only what it installed) and a generated `local-baselines` rule.
 - [ ] **Future Project (Untested)**: Implement tracer-bullet Slice 1 of the `AEGIS` multi-vendor API config ingestion pipeline.
 
 ---

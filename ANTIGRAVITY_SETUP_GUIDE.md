@@ -240,7 +240,7 @@ Understanding the architectural boundary between **Packaged Expertise (Skills)**
 
 #### User-Invoked vs. Model-Invoked Skills (`SKILL-MECHANICS`)
 Within Skills themselves, there are two invocation patterns that trade **Context Load** (tokens spent on every turn) against **Cognitive Load** (requiring the human to remember and type a command):
-1. **Model-Invoked Skills (All 7 Skills in This Kit)**:
+1. **Model-Invoked Skills (All 8 Skills in This Kit)**:
    Include a sharp `description` in YAML frontmatter and omit `disable-model-invocation`. The `description` stays loaded as a permanent **context pointer** (~30–50 tokens per skill) so the agent autonomously fires the skill whenever you paste a FortiGate config or ask about ticket staleness—while still allowing you to mention the skill explicitly by name.
 2. **User-Invoked Skills / Slash Workflows (`/grill-me`, `/plan`, `/compact`, or `disable-model-invocation: true`)**:
    Triggered *only* when the human engineer explicitly invokes them. Use user-invoked workflows for phase transitions (starting an architecture interview, cutting a spec into tickets, or running a session retrospective) where human agency decides *when* the workflow should run.
@@ -980,11 +980,11 @@ To install the kit into an existing or new workspace, place the unzipped `./Anti
 *Discovery Precedence*: Workspace customizations in `.agents/` take highest priority over global user preferences and IDE defaults, ensuring every team member working in the repository experiences identical agent behaviors and governance rules.
 
 ### 7.2 Automated Zero-Clone Workspace Bootstrap (`irm | iex`), `setup.py`, and Validation
-You do **not** need to clone or manually download the GitHub repository before setting up a workspace. Both [`validate_and_install.ps1`](validate_and_install.ps1) and [`setup.py`](setup.py) are self-bootstrapping: if run in a directory where the 55 canonical kit files are not yet present, they automatically download and extract the complete kit from `https://github.com/apswood/pantheon-ai-kit`, initialize `.env` from `.env.template`, offer the optional custom keyword leak scanner builder (`.custom_blocklist.json`, protected by `.gitignore`), and run all 4 validation stages.
+You do **not** need to clone or manually download the GitHub repository before setting up a workspace. Both [`validate_and_install.ps1`](validate_and_install.ps1) and [`setup.py`](setup.py) are self-bootstrapping: if run in a directory where the 60 canonical kit files are not yet present, they automatically download and extract the complete kit from `https://github.com/apswood/pantheon-ai-kit`, initialize `.env` from `.env.template`, offer the optional custom keyword leak scanner builder (`.custom_blocklist.json`, protected by `.gitignore`), and run all 4 validation stages.
 
 #### Option A (Recommended — Zero-Clone PowerShell One-Liner via `irm | iex`)
 ```powershell
-# 1. Zero-clone bootstrap into your current directory (downloads validate_and_install.ps1, setup.py & all 55 components):
+# 1. Zero-clone bootstrap into your current directory (downloads validate_and_install.ps1, setup.py & all 60 components):
 mkdir C:\Workspaces\ITSM_Support_Analytics; cd C:\Workspaces\ITSM_Support_Analytics
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
 
@@ -997,7 +997,7 @@ $env:PANTHEON_SKIP_SCANNER = "1"; irm https://raw.githubusercontent.com/apswood/
 
 #### Option B: Cross-Platform Python Bootstrapper (`setup.py`)
 ```powershell
-# 1. Zero-clone Python one-liner (downloads setup.py, which automatically fetches all 55 kit files & runs setup):
+# 1. Zero-clone Python one-liner (downloads setup.py, which automatically fetches all 60 kit files & runs setup):
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/setup.py -OutFile setup.py; python setup.py --init-env
 
 # 2. Inspect host runtimes, print the Python vs. PowerShell guide, rebuild the HTML docs, and validate the kit:
@@ -1030,7 +1030,7 @@ python validate_kit.py --verbose
 ```
 
 The validation pipeline executes four discrete checks:
-- **Stage 1 (Structure Check)**: Confirms presence and non-zero size of all 55 canonical kit files (6 specialist agents, 7 skills, 3 system prompts, rules, templates, and scripts) and verifies `GEMINI.md` is strictly `< 24,000 bytes`.
+- **Stage 1 (Structure Check)**: Confirms presence and non-zero size of all 60 canonical kit files (6 specialist agents, 8 skills, 3 system prompts, rules, templates, and scripts) and verifies `GEMINI.md` is strictly `< 24,000 bytes`.
 - **Stage 2 (YAML Frontmatter Check)**: Verifies that every `agent.md` and `SKILL.md` file contains valid opening/closing `---` delimiters and non-empty `name` and `description` context pointers.
 - **Stage 3 (De-Identification & Secret Leak Scan)**: Scans all files against 5 built-in generic credential/secret regex rules (`PEM Private Keys`, `GitHub PATs`, `AWS Access Key IDs`, `Slack API Tokens`, `Hardcoded OAuth Client Secrets`) plus any optional local custom `$EncodedRules` stored in `.custom_blocklist.json` (gitignored). Zero reversible organization-specific text is stored in the upstream repository.
 - **Stage 4 (Configuration Hygiene Check)**: Proves that `.gitignore` contains strict exclusion rules for `.env`, `.venv`, and `.custom_blocklist.json`, and that `.env.template` contains no plain text passwords.
@@ -1038,12 +1038,13 @@ The validation pipeline executes four discrete checks:
 ### 7.3 Activating the 6 Specialist Advisory Agents
 The Setup Kit embeds six distinct multi-agent personas configured to advise on infrastructure hardening, enterprise systems architecture, service delivery governance, security compliance, and process optimization.
 
-#### The Three Kit Groups
+#### The Four Kit Groups
 
 Agents and skills are organised by the job they do. The full principles for each group are in the [README](README.md#2-whats-included-at-a-glance).
 
 | Group | Purpose | Agents | Skills |
 | :--- | :--- | :--- | :--- |
+| **Getting started** | Set up a workspace with only what you need: answer a few questions about your role, tools and systems, preview the change, then try your first task. | none | `pantheon-setup` |
 | **Operational excellence** | Run service delivery the way the customer experiences it: spot stale work, hold quality to a clear standard, keep team pacing fair and sustainable, and turn data into coaching rather than blame. | `sage_governance` | `ticket-backlog-governance`, `quality-audit-governance`, `teams-standup-digest-notifier`, `productivity-workload-governance`, `support-team-governance-analytics-coaching` |
 | **Infrastructure and resilience** | Keep the estate secure, supportable and recoverable: audit configuration against recognised standards, and migrate or rebuild legacy servers without losing what keeps them working. | `aegis_best_practice`, `hermes_migration` | `infrastructure-best-practice-analyser`, `server-migration-infrastructure-replication` |
 | **Build and secure** | Make what you build simple, testable and safe: sound architecture, secrets kept out of code, and plans challenged before they are built. | `atlas_architecture`, `sentinel_security`, `spark_disruptor` | none yet |
@@ -1083,7 +1084,7 @@ You can invoke any specialist directly in Antigravity chat using the `@` mention
 | **SENTINEL** | Build and secure | Security Enforcement, Network Trust & Integrity Evaluation | Credential isolation, `<REDACTED>` diagnostic scrubbing, Windows SecretStore, least-privilege ACLs, deterministic security checks. | Pre-deployment security reviews, credential audits, building automated security guardrails. |
 | **SPARK** | Build and secure | Strategic Pivot, Assumption-challenging & Radical Kaizen | Design-tree frontier interviewing ("grilling"), tracer-bullet vertical slicing, eliminating operational toil, questioning metric gaming. | Project kickoff interviews, breaking specs into vertical slices, process simplification. |
 
-### 7.4 On-Demand Execution of the 7 Governance & Best-Practice Skills
+### 7.4 On-Demand Execution of the 8 Governance, Best-Practice & Setup Skills
 Antigravity uses **progressive disclosure** for skills: skills are not loaded into context until their YAML `description` context pointer matches your task:
 
 1. **Infrastructure Best-Practice Analyser (`infrastructure-best-practice-analyser`)** — *Infrastructure and resilience*:
@@ -1107,6 +1108,9 @@ Antigravity uses **progressive disclosure** for skills: skills are not loaded in
 7. **Server Migration & Infrastructure Replication (`server-migration-infrastructure-replication`)** — *Infrastructure and resilience*:
    - *Triggers*: `migrate server`, `reverse-engineer Apache / EDL`, `replicate CentOS to AlmaLinux 9`, `Ansible replication suite`, `cutover verification`.
    - *Output*: 4-phase migration plan, POSIX read-only discovery checklist, Apache/EDL/WebDAV matrix, CVE-2026-109618/109619 exposure controls, parameterized Ansible role architecture, and pre-cutover validation runbook.
+8. **PANTHEON Guided Setup (`pantheon-setup`)** — *Getting started*:
+   - *Triggers*: `set up the kit`, `enable a kit group`, `connect ServiceNow / Teams`, `change the pacing target`.
+   - *Output*: A `pantheon.profile.json`, a dry-run plan to confirm, then a workspace with only the selected agents, skills, mirrors and `.env` keys (secret values left for you to fill) plus an optional `local-baselines` rule.
 
 ### 7.5 Antigravity Workflow Commands: `/plan`, `/teamwork-preview`, `/grill-me`, and `/compact`
 Antigravity provides specialized slash commands in the Chat Canvas to orchestrate complex technical work:
@@ -1200,7 +1204,7 @@ Provisioning starter kit files into shared enterprise repositories requires equa
 2. **Suicide Deletion Hazard & Source Repo Protection**:
    - Running `python setup.py --uninstall` or `pwsh validate_and_install.ps1 -Uninstall` directly inside the kit source clone aborts immediately (`Exit Code 1`) to prevent accidental repository self-destruction. Uninstallation requires either an external `--target-dir` / `-TargetWorkspaceDir` or an explicit `--force` override.
 3. **Surgical Deletion vs. Recursive Purge**:
-   - Uninstallation removes only the 55 canonical kit files and generated artifacts. It prunes parent directories (`.agents/agents/`, `.agents/skills/`, `.agents/`) **only if they become completely empty**, preserving any custom agents, skills, or configurations created by your engineers.
+   - Uninstallation removes only the 60 canonical kit files and generated artifacts. It prunes parent directories (`.agents/agents/`, `.agents/skills/`, `.agents/`) **only if they become completely empty**, preserving any custom agents, skills, or configurations created by your engineers.
 4. **Deterministic Dry-Run Verification**:
    - Both `python setup.py --uninstall --dry-run` and `pwsh validate_and_install.ps1 -Uninstall -WhatIf` output a detailed preview of all candidate files and directories without altering disk state.
 

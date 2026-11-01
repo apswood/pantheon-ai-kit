@@ -10,7 +10,7 @@ one source of truth.
 
 - `.claude/agents/` - the 6 specialist subagents (AEGIS, ATLAS, HERMES, SAGE, SENTINEL, SPARK). Invoke with `@aegis_best_practice`
   or natural language ("Ask AEGIS to audit this FortiGate config").
-- `.claude/skills/` - the 7 governance skills, invoked as `/ticket-backlog-governance` etc.
+- `.claude/skills/` - the 8 skills, invoked as `/pantheon-setup`, `/ticket-backlog-governance` etc.
 - `.claude/rules/` - always-on S.A.G.E. governance rule.
 - **Do not hand-edit `.claude/`.** It is generated from the canonical `.agents/` sources. After changing anything in
   `.agents/`, run `python tools/sync_claude.py` (CI runs `--check` and fails on drift).

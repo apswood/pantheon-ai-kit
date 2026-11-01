@@ -4,7 +4,7 @@
 .DESCRIPTION
     Supports single-command remote bootstrap directly from GitHub via:
         irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
-    If run in a directory where the 55 canonical kit files are not yet present, automatically downloads
+    If run in a directory where the 60 canonical kit files are not yet present, automatically downloads
     and extracts the kit components (validate_and_install.ps1, setup.py, agents, skills, rules, and docs)
     from https://github.com/apswood/pantheon-ai-kit, initializes .env from .env.template, offers the
     optional custom keyword leak scanner builder (.custom_blocklist.json, protected by .gitignore),
@@ -13,6 +13,10 @@
     Runs the 4-stage validation checks and exits without copying or prompting.
 .PARAMETER TargetWorkspaceDir
     Target directory path where the starter kit will be downloaded/installed/uninstalled. Alias: TargetWorkspace.
+.PARAMETER SetupProfile
+    Path to a pantheon.profile.json (written by the /pantheon-setup skill). Hands over to
+    'setup.py --profile' to install only the selected groups, tools and integrations into
+    TargetWorkspaceDir. Alias: Profile. Combine with -DryRun to preview, -Force to apply without a prompt.
 .PARAMETER Install
     Explicit flag indicating installation mode into TargetWorkspaceDir.
 .PARAMETER Uninstall
@@ -56,6 +60,9 @@ param(
     [string]$TargetWorkspaceDir,
 
     [switch]$Install,
+
+    [Alias('Profile')]
+    [string]$SetupProfile,
 
     [switch]$Uninstall,
 
@@ -121,6 +128,7 @@ $RequiredFiles = @(
     ".agents/agents/sentinel_security/agent.md",
     ".agents/agents/spark_disruptor/agent.md",
     ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
+    ".agents/skills/pantheon-setup/SKILL.md",
     ".agents/skills/productivity-workload-governance/SKILL.md",
     ".agents/skills/quality-audit-governance/SKILL.md",
     ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
@@ -139,6 +147,7 @@ $RequiredFiles = @(
     ".claude/agents/sentinel_security.md",
     ".claude/agents/spark_disruptor.md",
     ".claude/skills/infrastructure-best-practice-analyser/SKILL.md",
+    ".claude/skills/pantheon-setup/SKILL.md",
     ".claude/skills/productivity-workload-governance/SKILL.md",
     ".claude/skills/quality-audit-governance/SKILL.md",
     ".claude/skills/server-migration-infrastructure-replication/SKILL.md",
@@ -158,7 +167,10 @@ $RequiredFiles = @(
     "docs_template/portal.js",
     "docs_template/fonts/IBMPlexSans-var.woff2",
     "docs_template/fonts/IBMPlexMono-400.woff2",
-    "docs_template/fonts/LICENSE.txt"
+    "docs_template/fonts/LICENSE.txt",
+    "tools/sync_claude.py",
+    "tools/sync_codex.py",
+    "tools/kit_catalog.py"
 )
 
 $CustomBlocklistFileName = ".custom_blocklist.json"
@@ -494,6 +506,7 @@ function Invoke-KitUninstallation {
         ".agents/agents/sentinel_security",
         ".agents/agents/spark_disruptor",
         ".agents/skills/infrastructure-best-practice-analyser",
+        ".agents/skills/pantheon-setup",
         ".agents/skills/productivity-workload-governance",
         ".agents/skills/quality-audit-governance",
         ".agents/skills/server-migration-infrastructure-replication",
@@ -507,6 +520,7 @@ function Invoke-KitUninstallation {
         "docs_template/fonts",
         "docs_template",
         ".claude/skills/infrastructure-best-practice-analyser",
+        ".claude/skills/pantheon-setup",
         ".claude/skills/ticket-backlog-governance",
         ".claude/skills/productivity-workload-governance",
         ".claude/skills/quality-audit-governance",
@@ -519,7 +533,8 @@ function Invoke-KitUninstallation {
         ".claude",
         ".codex/agents",
         ".codex",
-        "Governance_Framework"
+        "Governance_Framework",
+        "tools"
     )
 
     $hasDirs = $false
@@ -708,7 +723,7 @@ if (Test-Path -LiteralPath $LocalBlocklistPath) {
 
 $Issues = [System.Collections.Generic.List[string]]::new()
 
-# STAGE 1: File Existence and Byte Limit Check (55 canonical files)
+# STAGE 1: File Existence and Byte Limit Check (60 canonical files)
 Write-Host "[STAGE 1/4] Checking canonical file structure and byte limits..." -ForegroundColor Yellow
 
 foreach ($relPath in $RequiredFiles) {
@@ -1001,8 +1016,30 @@ if ($isInstall -and ($TargetWorkspaceDir -ne $KitRoot)) {
         Write-Host "  Created target workspace directory." -ForegroundColor Green
     }
 
+    # Guided setup: setup.py owns profile installs, so PowerShell stays a thin wrapper around it.
+    if ($SetupProfile) {
+        $pyCmd = Get-Command python -ErrorAction SilentlyContinue
+        if ($null -eq $pyCmd) { $pyCmd = Get-Command python3 -ErrorAction SilentlyContinue }
+        if ($null -eq $pyCmd) {
+            Write-Host "Error: -SetupProfile needs Python 3 on PATH (it runs setup.py --profile)." -ForegroundColor Red
+            if (-not $IsIex) { exit 1 } else { return }
+        }
+        $setupArgs = @((Join-Path $KitRoot "setup.py"), "--target-dir", $TargetWorkspaceDir, "--profile", $SetupProfile)
+        if ($DryRun) { $setupArgs += "--dry-run" }
+        if ($Force) { $setupArgs += "-y" }
+        & $pyCmd.Source @setupArgs
+        $profileExit = $LASTEXITCODE
+        if (-not $IsIex) { exit $profileExit } else { return }
+    }
+
     $ItemsToCopy = @(
         ".agents",
+        ".claude",
+        ".codex",
+        "CLAUDE.md",
+        "AGENTS.md",
+        "tools",
+        "docs_template",
         "Governance_Framework",
         "GEMINI.md",
         ".env.template",

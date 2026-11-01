@@ -16,7 +16,7 @@ When asked to update the handover ledger, edit `GEMINI.md`.
 
 ## Codex layout
 
-- `.agents/skills/` - the 7 governance skills. Codex reads this folder natively (no mirror); mention one with
+- `.agents/skills/` - the 8 governance skills. Codex reads this folder natively (no mirror); mention one with
   `$ticket-backlog-governance` or pick from `/skills`.
 - `.codex/agents/` - the 6 specialist agents (AEGIS, ATLAS, HERMES, SAGE, SENTINEL, SPARK). Ask Codex to spawn one by name, e.g.
   "Spawn aegis_best_practice to audit this FortiGate config".

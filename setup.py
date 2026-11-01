@@ -66,7 +66,7 @@ import urllib.request
 import venv
 import zipfile
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 CUSTOM_BLOCKLIST_FILENAME = ".custom_blocklist.json"
@@ -106,6 +106,7 @@ except Exception:
         ".agents/agents/sentinel_security/agent.md",
         ".agents/agents/spark_disruptor/agent.md",
         ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
+        ".agents/skills/pantheon-setup/SKILL.md",
         ".agents/skills/productivity-workload-governance/SKILL.md",
         ".agents/skills/quality-audit-governance/SKILL.md",
         ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
@@ -124,6 +125,7 @@ except Exception:
         ".claude/agents/sentinel_security.md",
         ".claude/agents/spark_disruptor.md",
         ".claude/skills/infrastructure-best-practice-analyser/SKILL.md",
+        ".claude/skills/pantheon-setup/SKILL.md",
         ".claude/skills/productivity-workload-governance/SKILL.md",
         ".claude/skills/quality-audit-governance/SKILL.md",
         ".claude/skills/server-migration-infrastructure-replication/SKILL.md",
@@ -144,6 +146,9 @@ except Exception:
         "docs_template/fonts/IBMPlexSans-var.woff2",
         "docs_template/fonts/IBMPlexMono-400.woff2",
         "docs_template/fonts/LICENSE.txt",
+        "tools/sync_claude.py",
+        "tools/sync_codex.py",
+        "tools/kit_catalog.py",
     ]
 
 
@@ -487,11 +492,25 @@ def plan_uninstallation(
     """
     files_to_delete: List[Path] = []
 
-    # Tier 1: Canonical Kit Files
+    # Tier 1: Canonical Kit Files (a profile install never copies .gitignore; it belongs to the user's project)
+    installed_list = target_dir / ".pantheon-installed.json"
     for rel_path in REQUIRED_KIT_FILES:
+        if rel_path == ".gitignore" and installed_list.is_file():
+            continue
         candidate = target_dir / rel_path
         if candidate.is_file() or candidate.is_symlink():
             if candidate not in files_to_delete:
+                files_to_delete.append(candidate)
+
+    # Tier 1b: Files a profile install recorded (pantheon.profile.json is kept unless secrets are purged)
+    if installed_list.is_file():
+        try:
+            recorded = json.loads(installed_list.read_text(encoding="utf-8")).get("files", [])
+        except (OSError, ValueError, AttributeError):
+            recorded = []
+        for rel_path in [*recorded, ".pantheon-installed.json"]:
+            candidate = target_dir / rel_path
+            if candidate.is_file() and candidate not in files_to_delete:
                 files_to_delete.append(candidate)
 
     # Tier 2: Generated Docs and Caches
@@ -503,7 +522,7 @@ def plan_uninstallation(
 
     # Tier 3: User Secrets and Keyword Blocklists
     if purge_secrets:
-        for sec in [".env", CUSTOM_BLOCKLIST_FILENAME]:
+        for sec in [".env", CUSTOM_BLOCKLIST_FILENAME, "pantheon.profile.json"]:
             candidate = target_dir / sec
             if candidate.is_file() and candidate not in files_to_delete:
                 files_to_delete.append(candidate)
@@ -517,6 +536,7 @@ def plan_uninstallation(
         target_dir / ".agents" / "agents" / "sentinel_security",
         target_dir / ".agents" / "agents" / "spark_disruptor",
         target_dir / ".agents" / "skills" / "infrastructure-best-practice-analyser",
+        target_dir / ".agents" / "skills" / "pantheon-setup",
         target_dir / ".agents" / "skills" / "productivity-workload-governance",
         target_dir / ".agents" / "skills" / "quality-audit-governance",
         target_dir / ".agents" / "skills" / "server-migration-infrastructure-replication",
@@ -530,6 +550,7 @@ def plan_uninstallation(
         target_dir / "docs_template" / "fonts",
         target_dir / "docs_template",
         target_dir / ".claude" / "skills" / "infrastructure-best-practice-analyser",
+        target_dir / ".claude" / "skills" / "pantheon-setup",
         target_dir / ".claude" / "skills" / "ticket-backlog-governance",
         target_dir / ".claude" / "skills" / "productivity-workload-governance",
         target_dir / ".claude" / "skills" / "quality-audit-governance",
@@ -543,6 +564,7 @@ def plan_uninstallation(
         target_dir / ".codex" / "agents",
         target_dir / ".codex",
         target_dir / "Governance_Framework",
+        target_dir / "tools",
     ]
     if purge_venv:
         dirs_to_prune.insert(0, target_dir / ".venv")
@@ -643,6 +665,189 @@ def execute_uninstallation(
             print(f"  [WARN] Failed to delete {setup_file.name}: {exc}", file=sys.stderr)
 
     print(f"\n[OK] Successfully uninstalled {deleted_count} kit file(s).")
+    return 0
+
+
+def load_catalog(kit_dir: Path) -> Any:
+    """Import tools/kit_catalog.py from the kit (after a standalone bootstrap has fetched it)."""
+    tools_dir = str(kit_dir / "tools")
+    if tools_dir not in sys.path:
+        sys.path.insert(0, tools_dir)
+    import kit_catalog  # type: ignore[import-not-found]
+
+    return kit_catalog
+
+
+def kit_version(kit_dir: Path) -> str:
+    path = kit_dir / "VERSION"
+    return path.read_text(encoding="utf-8").strip() if path.is_file() else "unknown"
+
+
+def build_profile(args: argparse.Namespace, target_dir: Path, catalog: Any) -> Optional[Dict[str, Any]]:
+    """Profile from --profile (or the workspace's saved one), with any shortcut flags layered on top."""
+    if not (args.profile or args.groups or args.tools or args.integrations or args.set):
+        return None
+    source = Path(args.profile) if args.profile else target_dir / catalog.PROFILE_FILENAME
+    profile: Dict[str, Any] = {}
+    if source.is_file():
+        loaded = catalog.read_json(source)
+        if not isinstance(loaded, dict):
+            raise ValueError(f"{source} is not a JSON object")
+        profile = loaded
+    elif args.profile:
+        raise ValueError(f"profile not found: {source}")
+
+    def names(value: str) -> List[str]:
+        return [v.strip() for v in value.split(",") if v.strip()]
+
+    if args.groups is not None:
+        profile["groups"] = names(args.groups)
+    if args.tools is not None:
+        profile["tools"] = names(args.tools)
+    if args.integrations is not None:
+        profile["integrations"] = names(args.integrations)
+    profile.setdefault("tools", list(catalog.TOOLS))
+    for item in args.set or []:
+        key, sep, raw = item.partition("=")
+        if not sep:
+            raise ValueError(f"--set expects KEY=VALUE, got '{item}'")
+        try:
+            value: Any = json.loads(raw)
+            if not isinstance(value, (int, float)):
+                value = raw
+        except ValueError:
+            value = raw
+        profile.setdefault("thresholds", {})[key.strip()] = value
+    profile["schema"] = catalog.PROFILE_SCHEMA
+    return profile
+
+
+def detect_workspace(kit_dir: Path, target_dir: Path) -> Dict[str, Any]:
+    """What is already in the target workspace. Reports .env key names only, never values."""
+    catalog = load_catalog(kit_dir)
+    profile = catalog.read_json(target_dir / catalog.PROFILE_FILENAME)
+    env_path = target_dir / ".env"
+    env: Dict[str, Any] = {"exists": env_path.is_file()}
+    if isinstance(profile, dict) and not catalog.validate_profile(profile):
+        keys = catalog.env_keys(profile)
+        values = catalog.template_values(env_path.read_text(encoding="utf-8", errors="replace")) if env_path.is_file() else {}
+        env["missing_keys"] = [k for k in keys["plain"] + keys["secret"] + keys["thresholds"] if k not in values]
+        env["empty_secret_keys"] = [k for k in keys["secret"] if k in values and not values[k].strip()]
+    pwsh_path, pwsh_ver = detect_executable(["pwsh"])
+    return {
+        "kit_dir": str(kit_dir),
+        "kit_version": kit_version(kit_dir),
+        "target_dir": str(target_dir),
+        "target_is_kit": target_dir.resolve() == kit_dir.resolve(),
+        "profile": profile,
+        "tools_present": {
+            "antigravity": (target_dir / ".agents").is_dir(),
+            "claude-code": (target_dir / ".claude").is_dir() or (target_dir / "CLAUDE.md").is_file(),
+            "codex": (target_dir / ".codex").is_dir() or (target_dir / "AGENTS.md").is_file(),
+        },
+        "runtimes": {"python": sys.version.split()[0], "pwsh": pwsh_ver if pwsh_path else None},
+        "env": env,
+        "catalogue": catalog.catalogue(),
+    }
+
+
+def print_profile_plan(plan: Dict[str, Any], dry_run: bool) -> None:
+    files = plan["files"]
+    sel = plan["selection"]
+    print("=" * 78)
+    print(f"  PANTHEON SETUP - PROFILE INSTALL{' (DRY RUN)' if dry_run else ''}")
+    print("=" * 78)
+    print(f"  Target workspace : {plan['target_dir']}")
+    print(f"  Groups           : {', '.join(sel['groups']) or '(none - setup skill only)'}")
+    print(f"  Tools            : {', '.join(sel['tools'])}")
+    print(f"  Agents           : {', '.join(sel['agents']) or '(none)'}")
+    print(f"  Skills           : {', '.join(sel['skills'])}")
+    if plan["local_baselines"]:
+        print(f"  Local baselines  : {', '.join(f'{k}={v}' for k, v in plan['local_baselines'].items())}")
+    print("=" * 78)
+    for label, mark in (("add", "+"), ("update", "~"), ("remove", "-")):
+        for rel in files[label]:
+            print(f"  [{mark}] {rel}")
+    print(f"  ({len(files['unchanged'])} file(s) already current)")
+    env = plan["env"]
+    if env["create"]:
+        print(f"  [+] .env (new, {len(env['add_keys'])} key(s))")
+    elif env["add_keys"] or env["set_keys"]:
+        print(f"  [~] .env (add {', '.join(env['add_keys']) or 'nothing'}; set {', '.join(env['set_keys']) or 'nothing'})")
+    if not plan["changes"]:
+        print("\n[OK] Workspace already matches the profile. Nothing to do.")
+
+
+def apply_profile(
+    kit_dir: Path,
+    target_dir: Path,
+    profile: Dict[str, Any],
+    dry_run: bool = False,
+    as_json: bool = False,
+    assume_yes: bool = False,
+) -> int:
+    """Install exactly what a profile selects into a separate workspace. Idempotent; prints a plan first."""
+    catalog = load_catalog(kit_dir)
+    if target_dir.resolve() == kit_dir.resolve():
+        print("[ERROR] A profile install needs a separate workspace: pass --target-dir <your project folder>.", file=sys.stderr)
+        print("        The kit folder stays the full source, so you can enable more groups later.", file=sys.stderr)
+        return 1
+    errors = catalog.validate_profile(profile)
+    if errors:
+        for err in errors:
+            print(f"[ERROR] {err}", file=sys.stderr)
+        return 2
+
+    profile = {**profile, "kit_version": kit_version(kit_dir)}
+    plan = catalog.plan_install(kit_dir, target_dir, profile)
+    if as_json:
+        print(json.dumps({k: v for k, v in plan.items() if not k.startswith("_")}, indent=2))
+    else:
+        print_profile_plan(plan, dry_run)
+    if dry_run or not plan["changes"]:
+        return 0
+
+    if (plan["files"]["update"] or plan["files"]["remove"]) and not assume_yes:
+        if not sys.stdin.isatty():
+            print("[ERROR] This changes or removes existing files; re-run with -y to confirm.", file=sys.stderr)
+            return 1
+        try:
+            confirm = input("\nApply these changes? [y/N]: ").strip().lower()
+        except EOFError:
+            confirm = "n"
+        if confirm not in ("y", "yes"):
+            print("[ABORTED] No changes made.")
+            return 0
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for rel in plan["files"]["add"] + plan["files"]["update"]:
+        path = target_dir / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(plan["_wanted"][rel].encode("utf-8"))
+    for rel in plan["files"]["remove"]:
+        path = target_dir / rel
+        path.unlink(missing_ok=True)
+        for parent in path.parents:
+            if parent == target_dir or any(parent.iterdir()):
+                break
+            parent.rmdir()
+    if plan["_env_text"] is not None:
+        (target_dir / ".env").write_text(plan["_env_text"], encoding="utf-8")
+    if plan["_profile_text"] is not None:
+        (target_dir / catalog.PROFILE_FILENAME).write_text(plan["_profile_text"], encoding="utf-8")
+    installed = {"kit_dir": str(kit_dir), "kit_version": profile["kit_version"], "files": sorted(plan["_wanted"])}
+    (target_dir / catalog.INSTALLED_FILENAME).write_text(json.dumps(installed, indent=2) + "\n", encoding="utf-8")
+
+    gi_path = target_dir / ".gitignore"
+    gi_text = gi_path.read_text(encoding="utf-8") if gi_path.is_file() else ""
+    if ".env" not in gi_text.splitlines():
+        gi_path.write_text(gi_text + ("" if gi_text.endswith("\n") or not gi_text else "\n") + ".env\n", encoding="utf-8")
+
+    if not as_json:
+        print(f"\n[OK] Applied profile to {target_dir}.")
+        secrets = plan["env"]["secret_keys_to_fill"]
+        if secrets:
+            print(f"     Fill these secret values yourself in .env or SecretStore: {', '.join(secrets)}")
     return 0
 
 
@@ -841,7 +1046,7 @@ def main() -> int:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Preview uninstallation plan without deleting any files.",
+        help="Preview the uninstallation or profile install plan without changing any files.",
     )
     parser.add_argument(
         "-y",
@@ -855,6 +1060,34 @@ def main() -> int:
         help="Bypass source repository self-deletion protection and confirmation prompts.",
     )
 
+    profile_opts = parser.add_argument_group("guided setup (used by the /pantheon-setup skill)")
+    profile_opts.add_argument(
+        "--detect",
+        action="store_true",
+        help="Report what is installed in --target-dir and what can be enabled, then exit.",
+    )
+    profile_opts.add_argument(
+        "--profile",
+        type=str,
+        default=None,
+        help="Install exactly what this pantheon.profile.json selects into --target-dir.",
+    )
+    profile_opts.add_argument("--groups", default=None, help="Comma-separated kit groups (overrides the profile).")
+    profile_opts.add_argument(
+        "--tools", default=None, help="Comma-separated tools: antigravity, claude-code, codex (overrides the profile)."
+    )
+    profile_opts.add_argument(
+        "--integrations", default=None, help="Comma-separated integrations, e.g. itsm,teams (overrides the profile)."
+    )
+    profile_opts.add_argument(
+        "--set",
+        action="append",
+        default=None,
+        metavar="KEY=VALUE",
+        help="Override a governance threshold, e.g. TARGET_DAILY_PACING_MINUTES=300 (repeatable).",
+    )
+    profile_opts.add_argument("--json", action="store_true", help="Print --detect or the profile plan as JSON.")
+
     args = parser.parse_args()
     global REPO_REF
     if args.ref:
@@ -865,6 +1098,26 @@ def main() -> int:
     if args.guide_only:
         print_language_guide()
         return 0
+
+    if args.detect:
+        ensure_kit_files_present(kit_dir)
+        report = detect_workspace(kit_dir, target_dir)
+        if not args.json:
+            report.pop("catalogue")
+        print(json.dumps(report, indent=2))
+        return 0
+
+    if not args.uninstall:
+        ensure_kit_files_present(kit_dir)
+        try:
+            profile = build_profile(args, target_dir, load_catalog(kit_dir))
+        except ValueError as exc:
+            print(f"[ERROR] {exc}", file=sys.stderr)
+            return 2
+        if profile is not None:
+            return apply_profile(
+                kit_dir, target_dir, profile, dry_run=args.dry_run, as_json=args.json, assume_yes=args.yes or args.force
+            )
 
     if args.uninstall:
         return execute_uninstallation(

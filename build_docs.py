@@ -96,6 +96,15 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "description": "Safe, version-controlled environment variable contract for ITSM, Identity/Graph API, Webhooks, and Analytics.",
     },
     {
+        "id": "skill-setup",
+        "title": "PANTHEON Guided Setup Skill",
+        "short_title": "Guided Setup",
+        "category": "Getting started",
+        "badge": "Skill Runbook",
+        "path": ".agents/skills/pantheon-setup/SKILL.md",
+        "description": "Role-based onboarding that installs only the groups, tools, integrations and thresholds a workspace needs, via a previewable setup.py profile.",
+    },
+    {
         "id": "agent-aegis",
         "title": "AEGIS — Infrastructure Best-Practice Analyser",
         "short_title": "AEGIS (Best Practice)",
@@ -219,6 +228,19 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
 # Each agent/skill belongs to exactly one group (enforced by tests/test_groups.py).
 GROUPS: List[Dict[str, Any]] = [
     {
+        "name": "Getting started",
+        "purpose": (
+            "Set up a workspace with only what you need: answer a few questions about your role, tools and systems, "
+            "preview the change, then try your first task."
+        ),
+        "principles": [
+            ("Ask before changing", "Every change is previewed as a plan and applied only after you confirm."),
+            ("Secrets never in chat", "You fill credentials yourself; setup only names the keys to fill."),
+            ("Repeatable", "The same answers always give the same workspace, and re-running changes nothing."),
+        ],
+        "members": ["skill-setup"],
+    },
+    {
         "name": "Operational excellence",
         "purpose": (
             "Run service delivery the way the customer experiences it: spot stale work, hold quality to a clear "
@@ -266,6 +288,7 @@ GROUPS: List[Dict[str, Any]] = [
 
 # "I want to..." entries: (goal, page id of the primary agent or skill). Shown on the home view and in the README.
 GOALS: List[Tuple[str, str]] = [
+    ("Set up the kit for my role", "skill-setup"),
     ("Find and chase stale tickets", "skill-backlog"),
     ("Check ticket quality scores", "skill-quality"),
     ("Prepare the daily standup", "skill-digest"),

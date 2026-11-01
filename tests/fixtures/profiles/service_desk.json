@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "role": "service-desk-lead",
+  "groups": ["operational-excellence"],
+  "tools": ["claude-code"],
+  "integrations": ["itsm", "teams"],
+  "thresholds": {"TARGET_DAILY_PACING_MINUTES": 300}
+}
