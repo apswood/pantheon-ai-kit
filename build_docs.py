@@ -687,18 +687,38 @@ def render_home(pages_data: List[Dict[str, Any]]) -> str:
         )
         return f"<li>{link(pid, inner, 'home-row')}</li>"
 
-    def group_block(g: Dict[str, Any]) -> str:
+    def group_slug(g: Dict[str, Any]) -> str:
+        return slugify(g["name"])
+
+    def group_panel(g: Dict[str, Any]) -> str:
         principles = "".join(
             f"<li><strong>{html.escape(t)}.</strong> {html.escape(d)}</li>" for t, d in g["principles"]
         )
         rows = "".join(row(pid) for pid in g["members"])
+        slug = group_slug(g)
         return (
-            '<section class="home-group">'
+            f'<section class="home-group" role="tabpanel" id="panel-{slug}" aria-labelledby="tab-{slug}" tabindex="0">'
             f"<h2>{html.escape(g['name'])}</h2>"
             f'<p class="home-group-purpose">{html.escape(g["purpose"])}</p>'
             f'<ul class="home-list">{rows}</ul>'
             f'<details class="principles"><summary>Core principles</summary><ul>{principles}</ul></details>'
             "</section>"
+        )
+
+    def group_tab(g: Dict[str, Any], selected: bool) -> str:
+        slug = group_slug(g)
+        return (
+            f'<button type="button" role="tab" id="tab-{slug}" aria-controls="panel-{slug}" '
+            f'aria-selected="{"true" if selected else "false"}" tabindex="{0 if selected else -1}" data-group="{slug}">'
+            f'{html.escape(g["name"])}<span class="tab-count">{len(g["members"])}</span></button>'
+        )
+
+    def group_tabs() -> str:
+        tabs = "".join(group_tab(g, i == 0) for i, g in enumerate(GROUPS))
+        panels = "".join(group_panel(g) for g in GROUPS)
+        return (
+            '<div class="home-tabs"><h2 class="home-tabs-title">Browse by group</h2>'
+            f'<div class="tabs" role="tablist" aria-label="Kit groups">{tabs}</div>{panels}</div>'
         )
 
     def goal_row(goal: str, pid: str) -> str:
@@ -737,7 +757,7 @@ def render_home(pages_data: List[Dict[str, Any]]) -> str:
         "</div></div>"
         f"{live}</div>"
         f'<div class="home-goals"><h2>I want to&hellip;</h2><ul class="goal-list">{goals}</ul></div>'
-        f'<div class="home-groups">{"".join(group_block(g) for g in GROUPS)}</div>'
+        f'{group_tabs()}'
         "</section>"
     )
 

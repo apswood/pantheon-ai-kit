@@ -65,3 +65,15 @@ def test_readme_lists_every_principle_and_member_under_its_group():
             assert f"**{title}**" in section, f"README group '{g['name']}' is missing principle '{title}'"
         for pid in g["members"]:
             assert f"`{PATHS[pid].split('/')[2]}`" in section, f"README group '{g['name']}' is missing {pid}"
+
+
+def test_home_groups_render_as_linked_tabs_and_panels():
+    import re
+
+    html_text = (ROOT / "ANTIGRAVITY_DOCS.html").read_text(encoding="utf-8")
+    tabs = re.findall(r'<button type="button" role="tab" id="(tab-[^"]+)" aria-controls="(panel-[^"]+)"', html_text)
+    assert len(tabs) == len(bd.GROUPS)
+    for tab_id, panel_id in tabs:
+        assert f'id="{panel_id}" aria-labelledby="{tab_id}"' in html_text
+    assert html_text.count('role="tabpanel"') == len(bd.GROUPS)
+    assert len(re.findall(r'role="tab"[^>]*aria-selected="true"', html_text)) == 1

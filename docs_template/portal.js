@@ -268,7 +268,7 @@
 
     function initReveals() {
       if (prefersReducedMotion || !("IntersectionObserver" in window)) return;
-      const selector = ".home h1, .home-sentence, .home-actions, .live-panel, .home-goals, .home-group, .article-body > .doc-h2, .article-body > .code-block-wrapper, .article-body > .table-responsive, .article-body > .callout, .article-body > .frontmatter-card, .article-body > .invoke-card";
+      const selector = ".home h1, .home-sentence, .home-actions, .live-panel, .home-goals, .home-tabs, .article-body > .doc-h2, .article-body > .code-block-wrapper, .article-body > .table-responsive, .article-body > .callout, .article-body > .frontmatter-card, .article-body > .invoke-card";
       document.querySelectorAll(selector).forEach((el, i) => {
         el.classList.add("reveal");
         el.style.setProperty("--d", Math.min(i % 4, 3) * 70 + "ms");
@@ -290,6 +290,41 @@
       }), 1200);
     }
 
+    /* ---------- Group tabs on the home view (all panels show, stacked, when scripting is off) ---------- */
+    function initGroupTabs() {
+      const tabs = Array.from(document.querySelectorAll('.tabs [role="tab"]'));
+      if (!tabs.length) return;
+      const panelFor = (tab) => document.getElementById(tab.getAttribute("aria-controls"));
+      const select = (tab, focus) => {
+        tabs.forEach((t) => {
+          const on = t === tab;
+          t.setAttribute("aria-selected", on ? "true" : "false");
+          t.tabIndex = on ? 0 : -1;
+          const panel = panelFor(t);
+          if (panel) panel.hidden = !on;
+        });
+        if (focus) tab.focus();
+        try { localStorage.setItem("pantheon_docs_group", tab.getAttribute("data-group")); } catch (e) {}
+      };
+      let initial = tabs[0];
+      try {
+        const saved = localStorage.getItem("pantheon_docs_group");
+        initial = tabs.find((t) => t.getAttribute("data-group") === saved) || tabs[0];
+      } catch (e) {}
+      select(initial, false);
+      tabs.forEach((tab, i) => {
+        tab.addEventListener("click", () => select(tab, false));
+        tab.addEventListener("keydown", (e) => {
+          const last = tabs.length - 1;
+          const next = e.key === "ArrowRight" ? tabs[i === last ? 0 : i + 1]
+            : e.key === "ArrowLeft" ? tabs[i === 0 ? last : i - 1]
+            : e.key === "Home" ? tabs[0]
+            : e.key === "End" ? tabs[last] : null;
+          if (next) { e.preventDefault(); select(next, true); }
+        });
+      });
+    }
+
     window.addEventListener("hashchange", () => {
       const hash = window.location.hash.replace(/^#/, "");
       if (hash) navigateToHash(hash);
@@ -299,6 +334,7 @@
     (function init() {
       syncThemeButton();
       setTool(document.documentElement.getAttribute("data-tool") || "antigravity");
+      initGroupTabs();
       initReveals();
 
       const hash = window.location.hash.replace(/^#/, "");

@@ -398,7 +398,33 @@ button { font: inherit; color: inherit; }
 .goal-row:hover { background: var(--raised); }
 .goal-target { flex-shrink: 0; font-size: 14px; color: var(--accent); }
 
-.home-groups { display: grid; gap: 64px; margin-top: 64px; }
+.home-tabs { margin-top: 64px; }
+.home-tabs-title { margin-bottom: 12px; font-size: 20px; font-weight: 600; line-height: 1.25; }
+.tabs { display: flex; flex-wrap: wrap; gap: 0 24px; margin-bottom: 24px; }
+.tabs button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-size: 16px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+.tab-count { font-size: 12px; font-weight: 400; color: var(--muted); }
+.home-group + .home-group { margin-top: 48px; }
+.home-group:focus-visible { outline-offset: 8px; }
+/* With scripting the tab strip names each group, so the in-panel heading stays for screen readers only;
+   without scripting every panel shows, stacked, and the tab strip is hidden. */
+html:not(.js) .tabs { display: none; }
+html.js .home-group > h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.home-group[hidden] { display: none; }
 .home-group-purpose { max-width: 60ch; margin-bottom: 16px; }
 .home-list { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; }
 .home-row {
@@ -616,8 +642,8 @@ html.js .tool-tag { display: none; }
   .home-sentence { font-size: 18px; }
   .live-panel { padding: 16px; }
   .live-row, .fm-item { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .home-goals, .home-groups { margin-top: 40px; }
-  .home-groups { gap: 40px; }
+  .home-goals, .home-tabs { margin-top: 40px; }
+  .tabs { gap: 0 20px; }
   .goal-row { flex-wrap: wrap; gap: 0 16px; }
   .code-pre { padding: 8px 12px 12px; }
   .code-diagram .code-pre { overflow-x: auto; }
