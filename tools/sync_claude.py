@@ -9,6 +9,7 @@
 Usage:
   python tools/sync_claude.py           # (re)generate files
   python tools/sync_claude.py --check   # exit 1 if generated files are missing or stale (for CI)
+  python tools/sync_claude.py --target-dir ../ws --only sage_governance,ticket-backlog-governance
 """
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -95,28 +96,39 @@ def render_rule(src_rel: str, text: str) -> str:
     return BANNER.format(src=src_rel) + body.lstrip("\n")
 
 
-def expected_outputs() -> Dict[str, str]:
+def expected_outputs(src: Optional[Path] = None, only: Optional[Set[str]] = None) -> Dict[str, str]:
+    """Generated files for the agents and skills under src (default: this repo), limited to `only` names if given."""
+    src = src or ROOT
     outputs: Dict[str, str] = {}
-    for agent in sorted((ROOT / ".agents" / "agents").glob("*/agent.md")):
-        rel = agent.relative_to(ROOT).as_posix()
-        outputs[f".claude/agents/{agent.parent.name}.md"] = render_agent(rel, agent.read_text(encoding="utf-8"))
-    for skill in sorted((ROOT / ".agents" / "skills").glob("*/SKILL.md")):
-        outputs[f".claude/skills/{skill.parent.name}/SKILL.md"] = render_skill(skill.read_text(encoding="utf-8"))
-    for rule in sorted((ROOT / ".agents" / "rules").glob("*.md")):
-        rel = rule.relative_to(ROOT).as_posix()
+    for agent in sorted((src / ".agents" / "agents").glob("*/agent.md")):
+        if only is None or agent.parent.name in only:
+            rel = agent.relative_to(src).as_posix()
+            outputs[f".claude/agents/{agent.parent.name}.md"] = render_agent(rel, agent.read_text(encoding="utf-8"))
+    for skill in sorted((src / ".agents" / "skills").glob("*/SKILL.md")):
+        if only is None or skill.parent.name in only:
+            outputs[f".claude/skills/{skill.parent.name}/SKILL.md"] = render_skill(skill.read_text(encoding="utf-8"))
+    for rule in sorted((src / ".agents" / "rules").glob("*.md")):
+        rel = rule.relative_to(src).as_posix()
         outputs[f".claude/rules/{rule.name}"] = render_rule(rel, rule.read_text(encoding="utf-8"))
     return outputs
+
+
+def parse_only(value: Optional[str]) -> Optional[Set[str]]:
+    return {n.strip() for n in value.split(",") if n.strip()} if value else None
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--check", action="store_true", help="verify generated files are current; do not write")
+    ap.add_argument("--target-dir", help="write into this workspace instead of the repo (sources stay in the repo)")
+    ap.add_argument("--only", help="comma-separated agent/skill folder names to include (default: all)")
     args = ap.parse_args()
 
-    outputs = expected_outputs()
+    out_root = Path(args.target_dir).resolve() if args.target_dir else ROOT
+    outputs = expected_outputs(only=parse_only(args.only))
     stale: List[str] = []
     for rel, content in outputs.items():
-        path = ROOT / rel
+        path = out_root / rel
         current = path.read_bytes().decode("utf-8").replace("\r\n", "\n") if path.exists() else None
         if current != content:
             stale.append(rel)
@@ -125,13 +137,13 @@ def main() -> int:
                 path.write_bytes(content.encode("utf-8"))
 
     orphans = []
-    claude = ROOT / ".claude"
+    claude = out_root / ".claude"
     if claude.exists():
         known = set(outputs)
         orphans = [
-            p.relative_to(ROOT).as_posix()
+            p.relative_to(out_root).as_posix()
             for p in claude.rglob("*")
-            if p.is_file() and p.relative_to(ROOT).as_posix() not in known
+            if p.is_file() and p.relative_to(out_root).as_posix() not in known
             and not p.name.startswith("settings")
         ]
 

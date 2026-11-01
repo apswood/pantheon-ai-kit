@@ -10,6 +10,17 @@ All notable changes to the PANTHEON AI Kit. The version lives in `VERSION` and i
   and `.codex/agents/*.toml` (6 custom agents with a read-only note). Codex reads the canonical `.agents/skills/`
   natively. CI checks the files for drift.
 - Canonical file list grows from 48 to 55 files.
+- Guided setup: the `/pantheon-setup` skill (new "Getting started" group) asks about role, tools, integrations
+  and thresholds, then `setup.py --profile` installs only those into a separate workspace. `--detect --json`
+  reports the workspace and the catalogue (`tools/kit_catalog.py`); `--dry-run --json` previews the plan;
+  re-running is a no-op and only files a previous profile install recorded are removed. Threshold overrides go
+  into `.env` and a generated `local-baselines` rule. `validate_and_install.ps1 -SetupProfile` hands over to it.
+- `tools/sync_claude.py` and `tools/sync_codex.py` accept `--target-dir` and `--only`.
+- Canonical file list grows from 55 to 60 files (setup skill and its mirror, the sync tools and the catalogue).
+
+### Fixed
+- `validate_and_install.ps1 -TargetWorkspaceDir` now also copies `.claude/`, `.codex/`, `CLAUDE.md`, `AGENTS.md`,
+  `tools/` and `docs_template/`.
 
 ## [1.0.1] - 2026-11-01
 

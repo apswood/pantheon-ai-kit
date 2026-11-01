@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "role": "infrastructure-engineer",
+  "groups": ["infrastructure-and-resilience"],
+  "tools": ["antigravity", "codex"],
+  "integrations": []
+}

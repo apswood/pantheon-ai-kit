@@ -51,7 +51,7 @@ PROSE_COUNT_RE = re.compile(r"\b(\d+)\s+(?:canonical(?:\s+kit)?\s+files?|kit\s+f
 # Directories never scanned: VCS metadata, virtual environments and tool caches (the latter can echo test data).
 SCAN_SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", "teamwork", ".pytest_cache", ".ruff_cache", ".mypy_cache", "node_modules"}
 
-# Expected Kit Files Relative to Kit Root (All 55 canonical files)
+# Expected Kit Files Relative to Kit Root (All 60 canonical files)
 EXPECTED_FILES = [
     "README.md",
     "ANTIGRAVITY_SETUP_GUIDE.md",
@@ -70,6 +70,7 @@ EXPECTED_FILES = [
     ".agents/agents/sentinel_security/agent.md",
     ".agents/agents/spark_disruptor/agent.md",
     ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
+    ".agents/skills/pantheon-setup/SKILL.md",
     ".agents/skills/productivity-workload-governance/SKILL.md",
     ".agents/skills/quality-audit-governance/SKILL.md",
     ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
@@ -88,6 +89,7 @@ EXPECTED_FILES = [
     ".claude/agents/sentinel_security.md",
     ".claude/agents/spark_disruptor.md",
     ".claude/skills/infrastructure-best-practice-analyser/SKILL.md",
+    ".claude/skills/pantheon-setup/SKILL.md",
     ".claude/skills/productivity-workload-governance/SKILL.md",
     ".claude/skills/quality-audit-governance/SKILL.md",
     ".claude/skills/server-migration-infrastructure-replication/SKILL.md",
@@ -108,6 +110,9 @@ EXPECTED_FILES = [
     "docs_template/fonts/IBMPlexSans-var.woff2",
     "docs_template/fonts/IBMPlexMono-400.woff2",
     "docs_template/fonts/LICENSE.txt",
+    "tools/sync_claude.py",
+    "tools/sync_codex.py",
+    "tools/kit_catalog.py",
 ]
 
 # Upstream Generic Credential & Secret Leak Patterns (Zero reversible company/personal text in upstream repo)
