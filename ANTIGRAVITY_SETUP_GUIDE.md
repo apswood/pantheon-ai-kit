@@ -980,11 +980,11 @@ To install the kit into an existing or new workspace, place the unzipped `./Anti
 *Discovery Precedence*: Workspace customizations in `.agents/` take highest priority over global user preferences and IDE defaults, ensuring every team member working in the repository experiences identical agent behaviors and governance rules.
 
 ### 7.2 Automated Zero-Clone Workspace Bootstrap (`irm | iex`), `setup.py`, and Validation
-You do **not** need to clone or manually download the GitHub repository before setting up a workspace. Both [`validate_and_install.ps1`](validate_and_install.ps1) and [`setup.py`](setup.py) are self-bootstrapping: if run in a directory where the 48 canonical kit files are not yet present, they automatically download and extract the complete kit from `https://github.com/apswood/pantheon-ai-kit`, initialize `.env` from `.env.template`, offer the optional custom keyword leak scanner builder (`.custom_blocklist.json`, protected by `.gitignore`), and run all 4 validation stages.
+You do **not** need to clone or manually download the GitHub repository before setting up a workspace. Both [`validate_and_install.ps1`](validate_and_install.ps1) and [`setup.py`](setup.py) are self-bootstrapping: if run in a directory where the 55 canonical kit files are not yet present, they automatically download and extract the complete kit from `https://github.com/apswood/pantheon-ai-kit`, initialize `.env` from `.env.template`, offer the optional custom keyword leak scanner builder (`.custom_blocklist.json`, protected by `.gitignore`), and run all 4 validation stages.
 
 #### Option A (Recommended — Zero-Clone PowerShell One-Liner via `irm | iex`)
 ```powershell
-# 1. Zero-clone bootstrap into your current directory (downloads validate_and_install.ps1, setup.py & all 48 components):
+# 1. Zero-clone bootstrap into your current directory (downloads validate_and_install.ps1, setup.py & all 55 components):
 mkdir C:\Workspaces\ITSM_Support_Analytics; cd C:\Workspaces\ITSM_Support_Analytics
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
 
@@ -997,7 +997,7 @@ $env:PANTHEON_SKIP_SCANNER = "1"; irm https://raw.githubusercontent.com/apswood/
 
 #### Option B: Cross-Platform Python Bootstrapper (`setup.py`)
 ```powershell
-# 1. Zero-clone Python one-liner (downloads setup.py, which automatically fetches all 48 kit files & runs setup):
+# 1. Zero-clone Python one-liner (downloads setup.py, which automatically fetches all 55 kit files & runs setup):
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/setup.py -OutFile setup.py; python setup.py --init-env
 
 # 2. Inspect host runtimes, print the Python vs. PowerShell guide, rebuild the HTML docs, and validate the kit:
@@ -1030,7 +1030,7 @@ python validate_kit.py --verbose
 ```
 
 The validation pipeline executes four discrete checks:
-- **Stage 1 (Structure Check)**: Confirms presence and non-zero size of all 48 canonical kit files (6 specialist agents, 7 skills, 3 system prompts, rules, templates, and scripts) and verifies `GEMINI.md` is strictly `< 24,000 bytes`.
+- **Stage 1 (Structure Check)**: Confirms presence and non-zero size of all 55 canonical kit files (6 specialist agents, 7 skills, 3 system prompts, rules, templates, and scripts) and verifies `GEMINI.md` is strictly `< 24,000 bytes`.
 - **Stage 2 (YAML Frontmatter Check)**: Verifies that every `agent.md` and `SKILL.md` file contains valid opening/closing `---` delimiters and non-empty `name` and `description` context pointers.
 - **Stage 3 (De-Identification & Secret Leak Scan)**: Scans all files against 5 built-in generic credential/secret regex rules (`PEM Private Keys`, `GitHub PATs`, `AWS Access Key IDs`, `Slack API Tokens`, `Hardcoded OAuth Client Secrets`) plus any optional local custom `$EncodedRules` stored in `.custom_blocklist.json` (gitignored). Zero reversible organization-specific text is stored in the upstream repository.
 - **Stage 4 (Configuration Hygiene Check)**: Proves that `.gitignore` contains strict exclusion rules for `.env`, `.venv`, and `.custom_blocklist.json`, and that `.env.template` contains no plain text passwords.
@@ -1171,6 +1171,24 @@ Usage in Claude Code: open the workspace and run `claude`; invoke agents with `@
 
 Contributor workflow: edit `.agents/`, run `python tools/sync_claude.py`, `python build_docs.py`, `python tools/build_manifest.py` (in that order), then `python validate_kit.py`. CI fails if any generated file is stale.
 
+### 7.7c OpenAI Codex Compatibility (untested)
+
+The kit also ships files for OpenAI Codex. They follow the documented Codex formats and pass CI checks (TOML parses, files match their sources), but they have not been exercised in a live Codex session, so treat agent spawning and skill triggering as unverified. `python tools/sync_codex.py` generates them:
+
+| Source | Generated (Codex) | Transformation |
+| :--- | :--- | :--- |
+| `.agents/agents/<name>/agent.md` | `.codex/agents/<name>.toml` | `name` and `description` kept; body becomes `developer_instructions`, prefixed with a read-only note |
+| `.agents/skills/<name>/SKILL.md` | none | Codex discovers `.agents/skills/` natively, so the canonical files are used as-is |
+| `.agents/rules/*.md` + `GEMINI.md` | `AGENTS.md` | A short Codex header that tells Codex to read `GEMINI.md` and each rule file first; nothing is copied |
+
+Codex custom agents have no per-tool allowlist and inherit the parent session's sandbox and approval settings, so the Antigravity tool list cannot be enforced. The generator turns it into a plain-language instruction (read files, search, fetch web pages; do not edit files). For a hard guarantee, run Codex with a read-only sandbox when you use these agents.
+
+Why `AGENTS.md` points instead of copying: Antigravity reads `AGENTS.md`, `GEMINI.md` and `.agents/rules/*.md` as rules, so an inlined copy would load the ledger and the S.A.G.E. rule twice there. The cost is that Codex gets the shared context by reading the files when told to, rather than having it preloaded; this is untested in a live Codex session. The ledger stays in `GEMINI.md` and needs no re-sync when it changes.
+
+Usage in Codex: open the workspace and run `codex`; mention a skill with `$ticket-backlog-governance` (or pick from `/skills`), and ask Codex to spawn an agent by name.
+
+Contributor workflow: run `python tools/sync_codex.py` straight after `python tools/sync_claude.py` in the sequence above.
+
 ### 7.7 Workspace Lifecycle Symmetry & Surgical Uninstallation
 
 Provisioning starter kit files into shared enterprise repositories requires equal rigor when decommissioning or rolling back changes. Both [`setup.py`](setup.py) and [`validate_and_install.ps1`](validate_and_install.ps1) implement non-destructive, surgical uninstallation:
@@ -1182,7 +1200,7 @@ Provisioning starter kit files into shared enterprise repositories requires equa
 2. **Suicide Deletion Hazard & Source Repo Protection**:
    - Running `python setup.py --uninstall` or `pwsh validate_and_install.ps1 -Uninstall` directly inside the kit source clone aborts immediately (`Exit Code 1`) to prevent accidental repository self-destruction. Uninstallation requires either an external `--target-dir` / `-TargetWorkspaceDir` or an explicit `--force` override.
 3. **Surgical Deletion vs. Recursive Purge**:
-   - Uninstallation removes only the 48 canonical kit files and generated artifacts. It prunes parent directories (`.agents/agents/`, `.agents/skills/`, `.agents/`) **only if they become completely empty**, preserving any custom agents, skills, or configurations created by your engineers.
+   - Uninstallation removes only the 55 canonical kit files and generated artifacts. It prunes parent directories (`.agents/agents/`, `.agents/skills/`, `.agents/`) **only if they become completely empty**, preserving any custom agents, skills, or configurations created by your engineers.
 4. **Deterministic Dry-Run Verification**:
    - Both `python setup.py --uninstall --dry-run` and `pwsh validate_and_install.ps1 -Uninstall -WhatIf` output a detailed preview of all candidate files and directories without altering disk state.
 

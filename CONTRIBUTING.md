@@ -2,7 +2,8 @@
 
 ## Ground rules
 
-- `.agents/` is the source of truth for agents, skills and rules. **Never hand-edit `.claude/`**; it is generated.
+- `.agents/` is the source of truth for agents, skills and rules. **Never hand-edit `.claude/`, `.codex/` or
+  `AGENTS.md`**; they are generated.
 - `GEMINI.md` must stay under 24,000 bytes (the validator warns at 19,200).
 - No real secrets, tenant IDs, customer names or internal hostnames anywhere. Use `<REDACTED>` or placeholders.
 - Never edit `ANTIGRAVITY_DOCS.html` directly. Portal markup, styles and scripts live in `docs_template/`
@@ -16,6 +17,7 @@ After changing `.agents/`, `README.md`, `ANTIGRAVITY_SETUP_GUIDE.md`, `GEMINI.md
 
 ```bash
 python tools/sync_claude.py       # .agents/ -> .claude/
+python tools/sync_codex.py        # .agents/ -> .codex/agents/, AGENTS.md
 python build_docs.py              # markdown -> ANTIGRAVITY_DOCS.html
 python tools/build_manifest.py    # SHA-256 digests -> kit_manifest.json (must come last)
 python validate_kit.py            # must exit 0
@@ -41,7 +43,8 @@ member is missing from a group, appears twice, or the README, guide or `GEMINI.m
 ## Adding an Antigravity tool mapping
 
 If an agent uses a tool not in `TOOL_MAP` (`tools/sync_claude.py`), the sync fails loudly. Map it to the Claude Code
-equivalent, or to `None` if there is none.
+equivalent, or to `None` if there is none. Add the same tool to `CAPABILITY_MAP` in `tools/sync_codex.py` (a
+plain-language capability such as `"read files"`, or `None`).
 
 ## Releasing
 

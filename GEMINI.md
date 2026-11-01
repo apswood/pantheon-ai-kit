@@ -177,6 +177,7 @@ pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir 
 - [x] **Tests, Maintainability & Project Docs**: pytest suite in `tests/`, prose file-count and repo-slug checks, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, and synthetic `examples/`.
 - [x] **Docs Portal Redesign**: "framed sheet" reader with an Antigravity / Claude Code switch, embedded IBM Plex fonts, stacked tables on phones, template in `docs_template/`.
 - [x] **Server Migration & Rebuild Framework (Milestone 1)**: Deployed HERMES specialist agent (`hermes_migration`), companion skill (`server-migration-infrastructure-replication`), standalone prompt (`HERMES_Agent_System_Prompt.md`), and integrated across all 7 kit lifecycle touchpoints.
+- [x] **OpenAI Codex Compatibility (Untested in Codex)**: `tools/sync_codex.py` generates `AGENTS.md` (points Codex to this file and the S.A.G.E. rule; no copy, as Antigravity also reads `AGENTS.md`) and `.codex/agents/*.toml`; Codex reads `.agents/skills/` natively.
 - [ ] **Future Project (Untested)**: Implement tracer-bullet Slice 1 of the `AEGIS` multi-vendor API config ingestion pipeline.
 
 ---

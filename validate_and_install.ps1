@@ -4,7 +4,7 @@
 .DESCRIPTION
     Supports single-command remote bootstrap directly from GitHub via:
         irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
-    If run in a directory where the 48 canonical kit files are not yet present, automatically downloads
+    If run in a directory where the 55 canonical kit files are not yet present, automatically downloads
     and extracts the kit components (validate_and_install.ps1, setup.py, agents, skills, rules, and docs)
     from https://github.com/apswood/pantheon-ai-kit, initializes .env from .env.template, offers the
     optional custom keyword leak scanner builder (.custom_blocklist.json, protected by .gitignore),
@@ -146,6 +146,13 @@ $RequiredFiles = @(
     ".claude/skills/teams-standup-digest-notifier/SKILL.md",
     ".claude/skills/ticket-backlog-governance/SKILL.md",
     ".claude/rules/sage-governance-prompt.md",
+    "AGENTS.md",
+    ".codex/agents/aegis_best_practice.toml",
+    ".codex/agents/atlas_architecture.toml",
+    ".codex/agents/hermes_migration.toml",
+    ".codex/agents/sage_governance.toml",
+    ".codex/agents/sentinel_security.toml",
+    ".codex/agents/spark_disruptor.toml",
     "docs_template/portal.html",
     "docs_template/portal.css",
     "docs_template/portal.js",
@@ -510,6 +517,8 @@ function Invoke-KitUninstallation {
         ".claude/agents",
         ".claude/skills",
         ".claude",
+        ".codex/agents",
+        ".codex",
         "Governance_Framework"
     )
 
@@ -699,7 +708,7 @@ if (Test-Path -LiteralPath $LocalBlocklistPath) {
 
 $Issues = [System.Collections.Generic.List[string]]::new()
 
-# STAGE 1: File Existence and Byte Limit Check (48 canonical files)
+# STAGE 1: File Existence and Byte Limit Check (55 canonical files)
 Write-Host "[STAGE 1/4] Checking canonical file structure and byte limits..." -ForegroundColor Yellow
 
 foreach ($relPath in $RequiredFiles) {

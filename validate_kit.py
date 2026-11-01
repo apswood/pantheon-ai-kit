@@ -51,7 +51,7 @@ PROSE_COUNT_RE = re.compile(r"\b(\d+)\s+(?:canonical(?:\s+kit)?\s+files?|kit\s+f
 # Directories never scanned: VCS metadata, virtual environments and tool caches (the latter can echo test data).
 SCAN_SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", "teamwork", ".pytest_cache", ".ruff_cache", ".mypy_cache", "node_modules"}
 
-# Expected Kit Files Relative to Kit Root (All 48 canonical files)
+# Expected Kit Files Relative to Kit Root (All 55 canonical files)
 EXPECTED_FILES = [
     "README.md",
     "ANTIGRAVITY_SETUP_GUIDE.md",
@@ -95,6 +95,13 @@ EXPECTED_FILES = [
     ".claude/skills/teams-standup-digest-notifier/SKILL.md",
     ".claude/skills/ticket-backlog-governance/SKILL.md",
     ".claude/rules/sage-governance-prompt.md",
+    "AGENTS.md",
+    ".codex/agents/aegis_best_practice.toml",
+    ".codex/agents/atlas_architecture.toml",
+    ".codex/agents/hermes_migration.toml",
+    ".codex/agents/sage_governance.toml",
+    ".codex/agents/sentinel_security.toml",
+    ".codex/agents/spark_disruptor.toml",
     "docs_template/portal.html",
     "docs_template/portal.css",
     "docs_template/portal.js",

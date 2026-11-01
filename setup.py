@@ -131,6 +131,13 @@ except Exception:
         ".claude/skills/teams-standup-digest-notifier/SKILL.md",
         ".claude/skills/ticket-backlog-governance/SKILL.md",
         ".claude/rules/sage-governance-prompt.md",
+        "AGENTS.md",
+        ".codex/agents/aegis_best_practice.toml",
+        ".codex/agents/atlas_architecture.toml",
+        ".codex/agents/hermes_migration.toml",
+        ".codex/agents/sage_governance.toml",
+        ".codex/agents/sentinel_security.toml",
+        ".codex/agents/spark_disruptor.toml",
         "docs_template/portal.html",
         "docs_template/portal.css",
         "docs_template/portal.js",
@@ -533,6 +540,8 @@ def plan_uninstallation(
         target_dir / ".claude" / "agents",
         target_dir / ".claude" / "skills",
         target_dir / ".claude",
+        target_dir / ".codex" / "agents",
+        target_dir / ".codex",
         target_dir / "Governance_Framework",
     ]
     if purge_venv:

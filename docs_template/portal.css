@@ -238,6 +238,9 @@ button { font: inherit; color: inherit; }
 
 .tool-switch { padding: 4px 8px 16px; }
 .tool-switch-label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
+/* Three tools do not fit side by side in the sidebar, so stack them. */
+.tool-switch .seg { grid-auto-flow: row; }
+.tool-switch .seg button { text-align: left; }
 
 .seg {
   display: grid;
@@ -559,8 +562,9 @@ html.js .home-group > h2 { position: absolute; width: 1px; height: 1px; overflow
 .invoke-card code { font-family: var(--mono); /* taste-skill-ignore: code only */ font-size: 14px; }
 
 /* ---------- Tool switch (JS enhances; without JS every variant shows) ---------- */
-html.js[data-tool="antigravity"] [data-tool-only="claude"],
-html.js[data-tool="claude"] [data-tool-only="antigravity"] { display: none; }
+html.js[data-tool="antigravity"] [data-tool-only]:not([data-tool-only="antigravity"]),
+html.js[data-tool="claude"] [data-tool-only]:not([data-tool-only="claude"]),
+html.js[data-tool="codex"] [data-tool-only]:not([data-tool-only="codex"]) { display: none; }
 html.js .tool-tag { display: none; }
 .tool-tag { margin-right: 6px; font-size: 12px; opacity: 0.8; }
 

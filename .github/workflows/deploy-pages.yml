@@ -9,6 +9,7 @@ on:
       - "build_docs.py"
       - "docs_template/**"
       - "CLAUDE.md"
+      - "AGENTS.md"
       - "VERSION"
       - "README.md"
       - "ANTIGRAVITY_SETUP_GUIDE.md"

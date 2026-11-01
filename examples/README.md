@@ -33,6 +33,16 @@ Run `claude` in the workspace folder (it loads `CLAUDE.md`, `.claude/agents/`, `
 /quality-audit-governance Score examples/qa_scorecard_sample.csv. Today is 26/10/2026
 ```
 
+## OpenAI Codex (untested)
+
+Run `codex` in the workspace folder (it loads `AGENTS.md`, `.codex/agents/` and the skills in `.agents/skills/`):
+
+```text
+Spawn aegis_best_practice to audit examples/fortigate_sample.conf against NIST 800-41 and UKFS outcomes.
+$ticket-backlog-governance Treat today as 26/10/2026 and rank examples/ticket_backlog_sample.csv, Top 5 per squad.
+$quality-audit-governance Score examples/qa_scorecard_sample.csv. Today is 26/10/2026.
+```
+
 ## Using your own data
 
 Scrub it first: replace credentials, pre-shared keys, SNMP communities, tenant IDs and customer names with

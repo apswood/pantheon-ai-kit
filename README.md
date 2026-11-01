@@ -4,7 +4,7 @@
 > An enterprise starter kit of **6 specialist AI advisory agents**, **7 operational & infrastructure hardening skills**, **standalone master prompts**, and **automated zero-leak validation tooling** for Enterprise IT, Service Operations, and Managed Service Providers (MSPs).  
 > Grounded in **ITIL 4 & ITIL 5**, **NIST SP 800-41 / 800-53 / CSF 2.0**, **NCSC & Cyber Essentials Plus**, and **UK Financial-Services Operational Resilience (`UKFS-01`–`UKFS-06`)** across `PAN-OS`, `FortiOS`, `Junos`, `Windows Server`, and `Linux Server`.
 
-- **Works with both Google Antigravity and Claude Code** — `.agents/` is the canonical source; `.claude/` and `CLAUDE.md` are generated mirrors (see [§1.1](#11-using-the-kit-with-claude-code))
+- **Works with Google Antigravity, Claude Code and OpenAI Codex** — `.agents/` is the canonical source; `.claude/`, `.codex/` and `AGENTS.md` are generated from it (see [§1.1](#11-using-the-kit-with-claude-code) and [§1.2](#12-using-the-kit-with-openai-codex-untested))
 - **Live HTML Documentation Portal**: [**`https://apswood.github.io/pantheon-ai-kit/`**](https://apswood.github.io/pantheon-ai-kit/)
 - **Offline Local Documentation Portal**: Open [`ANTIGRAVITY_DOCS.html`](ANTIGRAVITY_DOCS.html) directly in any browser (`file://` — zero web server or internet connection required)
 - **Complete Setup & Engineering Manual**: [`ANTIGRAVITY_SETUP_GUIDE.md`](ANTIGRAVITY_SETUP_GUIDE.md)
@@ -13,7 +13,7 @@
 
 ## 1. Quickstart & Installation
 
-You do **not** need to clone or manually download the repository beforehand. Run a single bootstrap command in your target project directory to download all 48 canonical kit files, initialize `.env` from `.env.template`, optionally configure the custom keyword leak scanner, and run all 4 pre-flight validation checks.
+You do **not** need to clone or manually download the repository beforehand. Run a single bootstrap command in your target project directory to download all 55 canonical kit files, initialize `.env` from `.env.template`, optionally configure the custom keyword leak scanner, and run all 4 pre-flight validation checks.
 
 ### Option A: Zero-Clone PowerShell One-Liner (Recommended)
 Open PowerShell (`pwsh` 7.2+ recommended, or Windows PowerShell 5.1) in your target directory and run:
@@ -31,7 +31,7 @@ $env:PANTHEON_TARGET_DIR = "C:\Workspaces\ServiceDeliveryOps"; irm https://raw.g
 If you prefer Python (Windows, macOS, or Linux):
 
 ```powershell
-# Zero-clone Python bootstrap (fetches all 48 kit files, initializes .env, rebuilds HTML docs, and validates):
+# Zero-clone Python bootstrap (fetches all 55 kit files, initializes .env, rebuilds HTML docs, and validates):
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/setup.py -OutFile setup.py; python setup.py --init-env
 
 # Or from an existing local clone (with optional isolated .venv creation):
@@ -77,6 +77,23 @@ The same agents and skills work in **Claude Code** with no extra setup beyond th
 ```bash
 python tools/sync_claude.py          # regenerate .claude/
 python tools/sync_claude.py --check  # CI: fail if .claude/ is stale
+```
+
+### 1.2 Using the Kit with OpenAI Codex (untested)
+The kit also ships files for **OpenAI Codex** (CLI and IDE extension). They follow the documented Codex formats and are checked by CI, but they have **not yet been run in a real Codex session**. Please report anything that misbehaves.
+
+| Capability | Antigravity | Codex |
+| :--- | :--- | :--- |
+| Workspace context | `GEMINI.md` | `AGENTS.md` (generated: tells Codex to read `GEMINI.md` and the S.A.G.E. rule, because Codex cannot import files) |
+| Specialist agents | `.agents/agents/<name>/agent.md` | `.codex/agents/<name>.toml` (ask "Spawn aegis_best_practice to …") |
+| Skills | `.agents/skills/<name>/SKILL.md` | Same folder; Codex reads `.agents/skills/` natively (`$ticket-backlog-governance` or `/skills`) |
+| Always-on rule | `.agents/rules/` | Listed in `AGENTS.md` for Codex to read |
+
+`AGENTS.md` points to the shared files rather than copying them, because Antigravity reads `AGENTS.md` too and would otherwise load the same instructions twice. Codex custom agents cannot restrict tools, so each agent's instructions start with a read-only note instead. After editing `.agents/`, regenerate:
+
+```bash
+python tools/sync_codex.py          # regenerate AGENTS.md and .codex/agents/
+python tools/sync_codex.py --check  # CI: fail if they are stale
 ```
 
 ### Uninstallation & Workspace Cleanup
@@ -178,7 +195,7 @@ Make what you build simple, testable and safe: sound architecture, secrets kept 
 
 ---
 
-## 3. Repository Layout (48 Canonical Files)
+## 3. Repository Layout (55 Canonical Files)
 
 ```text
 pantheon-ai-kit/
@@ -188,6 +205,8 @@ pantheon-ai-kit/
 │   └── rules/sage-governance-prompt.md     # Always-on workspace governance rule
 ├── .claude/                                # Claude Code mirror GENERATED from .agents/ (agents, skills, rules)
 ├── CLAUDE.md                               # Claude Code entry point (imports GEMINI.md)
+├── .codex/agents/                          # Codex custom agents GENERATED from .agents/agents/
+├── AGENTS.md                               # Codex entry point GENERATED; points to GEMINI.md + the S.A.G.E. rule
 ├── Governance_Framework/                   # Standalone SAGE, AEGIS & HERMES master system prompts
 ├── GEMINI.md                               # Living workspace handover & session state ledger (< 24 KB)
 ├── ANTIGRAVITY_DOCS.html                   # Offline-ready responsive HTML5 documentation portal
@@ -199,7 +218,7 @@ pantheon-ai-kit/
 ├── build_docs.py                           # Zero-dependency compiler regenerating ANTIGRAVITY_DOCS.html
 ├── validate_kit.py                         # Python 4-stage structural & secret leak validator
 ├── validate_and_install.ps1                # PowerShell zero-clone bootstrapper, validator & uninstaller
-├── tools/                                  # Repo-only maintainer tools (not installed): sync_claude.py, build_manifest.py
+├── tools/                                  # Repo-only maintainer tools (not installed): sync_claude.py, sync_codex.py, build_manifest.py
 ├── kit_manifest.json                       # SHA-256 digests verified by installers (repo-only)
 └── VERSION                                 # Kit release version (repo-only)
 ```

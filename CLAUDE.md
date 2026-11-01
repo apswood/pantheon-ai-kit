@@ -1,6 +1,6 @@
 # CLAUDE.md - PANTHEON AI Kit (Claude Code entry point)
 
-This workspace is dual-compatible with **Google Antigravity** and **Claude Code**.
+This workspace works with **Google Antigravity**, **Claude Code** and **OpenAI Codex** (Codex gets a generated `AGENTS.md` that points here).
 `GEMINI.md` is the single living handover ledger for both tools; Claude Code loads it here via import so there is
 one source of truth.
 

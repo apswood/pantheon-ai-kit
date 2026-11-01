@@ -631,10 +631,12 @@ TEMPLATE_DIR = Path(__file__).resolve().parent / "docs_template"
 TOOL_VARIANT = '<span data-tool-only="{tool}"><span class="tool-tag">{label}</span>{body}</span>'
 
 
-def tool_pair(antigravity: str, claude: str) -> str:
-    """Render both tool variants; the portal script shows the one for the selected tool (both without scripting)."""
-    return TOOL_VARIANT.format(tool="antigravity", label="Antigravity", body=antigravity) + TOOL_VARIANT.format(
-        tool="claude", label="Claude Code", body=claude
+def tool_variants(antigravity: str, claude: str, codex: str) -> str:
+    """Render every tool variant; the portal script shows the one for the selected tool (all without scripting)."""
+    return (
+        TOOL_VARIANT.format(tool="antigravity", label="Antigravity", body=antigravity)
+        + TOOL_VARIANT.format(tool="claude", label="Claude Code", body=claude)
+        + TOOL_VARIANT.format(tool="codex", label="Codex", body=codex)
     )
 
 
@@ -644,15 +646,29 @@ def render_invoke_card(entry: Dict[str, str]) -> str:
     parts = path.split("/")
     if len(parts) == 4 and parts[0] == ".agents" and parts[1] == "agents":
         name = parts[2]
-        lives = tool_pair(f"<code>.agents/agents/{name}/agent.md</code>", f"<code>.claude/agents/{name}.md</code>")
-        invoke = f"<code>@{name}</code> or ask by name in plain language"
+        lives = tool_variants(
+            f"<code>.agents/agents/{name}/agent.md</code>",
+            f"<code>.claude/agents/{name}.md</code>",
+            f"<code>.codex/agents/{name}.toml</code>",
+        )
+        invoke = tool_variants(
+            f"<code>@{name}</code> or ask by name in plain language",
+            f"<code>@{name}</code> or ask by name in plain language",
+            f"Ask Codex to spawn <code>{name}</code>",
+        )
     elif len(parts) == 4 and parts[0] == ".agents" and parts[1] == "skills":
         name = parts[2]
-        lives = tool_pair(f"<code>.agents/skills/{name}/SKILL.md</code>", f"<code>.claude/skills/{name}/SKILL.md</code>")
-        invoke = f"<code>/{name}</code>"
+        lives = tool_variants(
+            f"<code>.agents/skills/{name}/SKILL.md</code>",
+            f"<code>.claude/skills/{name}/SKILL.md</code>",
+            f"<code>.agents/skills/{name}/SKILL.md</code>",
+        )
+        invoke = tool_variants(f"<code>/{name}</code>", f"<code>/{name}</code>", f"<code>${name}</code>")
     else:
         return ""
-    context = tool_pair("<code>GEMINI.md</code>", "<code>CLAUDE.md</code> (imports GEMINI.md)")
+    context = tool_variants(
+        "<code>GEMINI.md</code>", "<code>CLAUDE.md</code> (imports GEMINI.md)", "<code>AGENTS.md</code> (points to GEMINI.md)"
+    )
     return (
         '<div class="invoke-card"><dl class="live-rows">'
         f'<div class="live-row"><dt>Lives in</dt><dd>{lives}</dd></div>'
@@ -731,17 +747,19 @@ def render_home(pages_data: List[Dict[str, Any]]) -> str:
     live = (
         '<div class="live-panel">'
         "<h2>Pick your tool</h2>"
-        "<p>The same agents and skills run in both. Paths and commands below follow your choice everywhere in these docs.</p>"
+        "<p>The same agents and skills run in each. Paths and commands below follow your choice everywhere in these docs. "
+        "Codex support is untested.</p>"
         '<div class="seg" role="group" aria-label="Tool">'
         '<button type="button" data-set-tool="antigravity" aria-pressed="true">Antigravity</button>'
         '<button type="button" data-set-tool="claude" aria-pressed="false">Claude Code</button>'
+        '<button type="button" data-set-tool="codex" aria-pressed="false">Codex</button>'
         "</div>"
         '<dl class="live-rows">'
-        f'<div class="live-row"><dt>Agents live in</dt><dd>{tool_pair("<code>.agents/agents/</code>", "<code>.claude/agents/</code>")}</dd></div>'
-        f'<div class="live-row"><dt>Skills live in</dt><dd>{tool_pair("<code>.agents/skills/</code>", "<code>.claude/skills/</code>")}</dd></div>'
-        f'<div class="live-row"><dt>Context file</dt><dd>{tool_pair("<code>GEMINI.md</code>", "<code>CLAUDE.md</code>, which imports GEMINI.md")}</dd></div>'
-        '<div class="live-row"><dt>Ask an agent</dt><dd><code>@aegis_best_practice</code> or plain language</dd></div>'
-        '<div class="live-row"><dt>Run a skill</dt><dd><code>/ticket-backlog-governance</code></dd></div>'
+        f'<div class="live-row"><dt>Agents live in</dt><dd>{tool_variants("<code>.agents/agents/</code>", "<code>.claude/agents/</code>", "<code>.codex/agents/</code>")}</dd></div>'
+        f'<div class="live-row"><dt>Skills live in</dt><dd>{tool_variants("<code>.agents/skills/</code>", "<code>.claude/skills/</code>", "<code>.agents/skills/</code>")}</dd></div>'
+        f'<div class="live-row"><dt>Context file</dt><dd>{tool_variants("<code>GEMINI.md</code>", "<code>CLAUDE.md</code>, which imports GEMINI.md", "<code>AGENTS.md</code>, which points to GEMINI.md")}</dd></div>'
+        f'<div class="live-row"><dt>Ask an agent</dt><dd>{tool_variants("<code>@aegis_best_practice</code> or plain language", "<code>@aegis_best_practice</code> or plain language", "Ask Codex to spawn <code>aegis_best_practice</code>")}</dd></div>'
+        f'<div class="live-row"><dt>Run a skill</dt><dd>{tool_variants("<code>/ticket-backlog-governance</code>", "<code>/ticket-backlog-governance</code>", "<code>$ticket-backlog-governance</code>")}</dd></div>'
         "</dl></div>"
     )
     return (
@@ -749,7 +767,7 @@ def render_home(pages_data: List[Dict[str, Any]]) -> str:
         "<h1>Governance agents and skills</h1>"
         '<div class="home-lead-row"><div>'
         f'<p class="home-sentence">{count_word(agent_count).capitalize()} advisory agents and {count_word(skill_count)} skills for ITIL, NIST and UK resilience standards. '
-        "One command installs them; they run in Antigravity or Claude Code.</p>"
+        "One command installs them; they run in Antigravity, Claude Code or Codex.</p>"
         '<div class="home-actions">'
         "<a class=\"btn btn-primary\" href=\"#readme-1-quickstart-installation\" "
         "onclick=\"navigateToPage('readme', 'readme-1-quickstart-installation'); return false;\">Quickstart</a>"

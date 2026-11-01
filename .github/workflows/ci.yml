@@ -26,6 +26,9 @@ jobs:
       - name: Claude Code mirror matches .agents/ sources
         run: python tools/sync_claude.py --check
 
+      - name: Codex files match .agents/ and GEMINI.md sources
+        run: python tools/sync_codex.py --check
+
       - name: HTML docs match a fresh build
         run: |
           python build_docs.py

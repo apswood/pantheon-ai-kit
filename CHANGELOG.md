@@ -2,6 +2,15 @@
 
 All notable changes to the PANTHEON AI Kit. The version lives in `VERSION` and in `kit_manifest.json`.
 
+## [Unreleased]
+
+### Added
+- OpenAI Codex compatibility (untested in a live Codex session): `tools/sync_codex.py` generates `AGENTS.md` (tells
+  Codex to read `GEMINI.md` and the S.A.G.E. rule; it does not copy them, because Antigravity also reads `AGENTS.md`)
+  and `.codex/agents/*.toml` (6 custom agents with a read-only note). Codex reads the canonical `.agents/skills/`
+  natively. CI checks the files for drift.
+- Canonical file list grows from 48 to 55 files.
+
 ## [1.0.1] - 2026-11-01
 
 ### Added

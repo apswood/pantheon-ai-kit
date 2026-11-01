@@ -17,7 +17,7 @@
         }
         root.setAttribute("data-theme", theme);
         var tool = localStorage.getItem("pantheon_docs_tool");
-        if (tool === "antigravity" || tool === "claude") root.setAttribute("data-tool", tool);
+        if (tool === "antigravity" || tool === "claude" || tool === "codex") root.setAttribute("data-tool", tool);
       } catch (e) {}
     })();
   </script>
@@ -60,6 +60,7 @@
         <div class="seg" role="group" aria-labelledby="tool-switch-label">
           <button type="button" data-set-tool="antigravity" aria-pressed="true">Antigravity</button>
           <button type="button" data-set-tool="claude" aria-pressed="false">Claude Code</button>
+          <button type="button" data-set-tool="codex" aria-pressed="false">Codex</button>
         </div>
       </div>
       @@SIDEBAR_NAV@@

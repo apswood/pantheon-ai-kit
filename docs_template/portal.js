@@ -154,7 +154,7 @@
       }
     }
 
-    /* ---------- Theme and tool (Antigravity / Claude Code) ---------- */
+    /* ---------- Theme and tool (Antigravity / Claude Code / Codex) ---------- */
     function syncThemeButton() {
       const btn = document.getElementById("theme-toggle-btn");
       if (!btn) return;
@@ -172,7 +172,7 @@
     }
 
     function setTool(tool) {
-      if (tool !== "antigravity" && tool !== "claude") return;
+      if (tool !== "antigravity" && tool !== "claude" && tool !== "codex") return;
       document.documentElement.setAttribute("data-tool", tool);
       try { localStorage.setItem("pantheon_docs_tool", tool); } catch (e) {}
       document.querySelectorAll("[data-set-tool]").forEach(btn => {
