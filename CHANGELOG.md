@@ -2,6 +2,16 @@
 
 All notable changes to the PANTHEON AI Kit. The version lives in `VERSION` and in `kit_manifest.json`.
 
+## [1.0.1] - 2026-11-01
+
+### Added
+- Docs portal home page: the three kit groups are an accessible tabbed interface (arrow keys, Home/End, remembers the
+  last tab, stacked panels without scripting).
+
+### Fixed
+- README: the "inspect before running" command had a stray control character in `.\validate_and_install.ps1`.
+- Pinned-install examples now reference `v1.0.1`.
+
 ## [1.0.0] - 2026-11-01
 
 First tagged release.

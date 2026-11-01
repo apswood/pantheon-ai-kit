@@ -56,10 +56,10 @@ python setup.py --init-env --venv
 `main` moves. For reproducible installs, pin a release tag (or commit SHA) with `PANTHEON_REF` (or `-Ref` / `--ref`). The installers fetch `kit_manifest.json` from that ref and verify the SHA-256 of every downloaded file; any mismatch aborts the install.
 
 ```powershell
-$env:PANTHEON_REF = "v1.0.0"; irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/v1.0.0/validate_and_install.ps1 | iex
+$env:PANTHEON_REF = "v1.0.1"; irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/v1.0.1/validate_and_install.ps1 | iex
 ```
 
-To inspect before running, download first: `irm <url> -OutFile validate_and_install.ps1`, read it, then run `pwsh -File .alidate_and_install.ps1 -Ref v1.0.0`.
+To inspect before running, download first: `irm <url> -OutFile validate_and_install.ps1`, read it, then run `pwsh -File .\validate_and_install.ps1 -Ref v1.0.1`.
 > The manifest comes from the same repository, so it protects against corruption and partial or mixed-ref downloads, not against a compromised repository. Pinning a tag you have reviewed is what gives you immutability.
 
 ### 1.1 Using the Kit with Claude Code
