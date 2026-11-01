@@ -52,6 +52,7 @@ and scoring algorithms from external API network I/O, credential retrieval, and 
 - **Specialist Advisory Agents** (`.agents/agents/`):
   - `aegis_best_practice`: Infrastructure Best-Practice Analyser auditing Palo Alto (PAN-OS), FortiGate (FortiOS), Juniper (Junos), Windows Server, and Linux Server against NIST, NCSC, vendor hardening, and UKFS-01..06 outcomes.
   - `atlas_architecture`: Systems Architect auditing modularity, dual-stack parity, pure separation, and resilience.
+  - `hermes_migration`: Server Migration & Rebuild Specialist auditing legacy state, preserving auth, reverse-engineering Apache/EDL, and generating Ansible playbooks.
   - `sage_governance`: Service Analytics Lead auditing operational KPI thresholds, pacing, throughput, and QA.
   - `sentinel_security`: Security & Compliance Lead auditing secret isolation, API authentication, and PII protection.
   - `spark_disruptor`: Contrarian Disruptor challenging operational orthodoxies, timesheet gaming, and complexity.
@@ -60,11 +61,13 @@ and scoring algorithms from external API network I/O, credential retrieval, and 
   - `ticket-backlog-governance`: 4-criterion 145-point rubric, staleness rules, and top-5 prioritisation.
   - `productivity-workload-governance`: 315-min daily pacing, 2 tasks/day throughput, and 10% proactive allocation.
   - `quality-audit-governance`: Dual-metric scoring (`Resolve Pass %` vs Granular QA score), future-date pending override.
+  - `server-migration-infrastructure-replication`: 4-phase migration methodology, POSIX discovery, Apache/EDL reverse-engineering, and AlmaLinux 9 Ansible replication suite.
   - `teams-standup-digest-notifier`: Operational standup card formatting and distribution.
   - `support-team-governance-analytics-coaching`: 3-stage evidence-based coaching workflow.
 - **Standalone System Prompts & Blueprints** (`Governance_Framework/`):
   - `SAGE_Agent_System_Prompt.md`: Master system prompt for S.A.G.E. operational governance.
   - `AEGIS_Agent_System_Prompt.md`: Copy-paste infrastructure config analysis prompt template (`PAN-OS`, `FortiOS`, `Junos`, `Windows`, `Linux`) + **Untested Future Project Blueprint** for an automated multi-vendor read-only API config ingestion pipeline.
+  - `HERMES_Agent_System_Prompt.md`: Copy-paste server migration and discovery analysis prompt template + Linux-to-Ansible target replication and cutover runbook.
 
 ---
 
@@ -171,7 +174,8 @@ pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir 
 - [x] **Pinned, Verified Installs & CI**: `PANTHEON_REF`/`-Ref`/`--ref` plus SHA-256 verification against `kit_manifest.json`; GitHub Actions run drift checks, cross-platform validation, pytest, lint and gitleaks.
 - [x] **Tests, Maintainability & Project Docs**: pytest suite in `tests/`, prose file-count and repo-slug checks, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, and synthetic `examples/`.
 - [x] **Docs Portal Redesign**: "framed sheet" reader with an Antigravity / Claude Code switch, embedded IBM Plex fonts, stacked tables on phones, template in `docs_template/`.
+- [x] **Server Migration & Rebuild Framework (Milestone 1)**: Deployed HERMES specialist agent (`hermes_migration`), companion skill (`server-migration-infrastructure-replication`), standalone prompt (`HERMES_Agent_System_Prompt.md`), and integrated across all 7 kit lifecycle touchpoints.
 - [ ] **Future Project (Untested)**: Implement tracer-bullet Slice 1 of the `AEGIS` multi-vendor API config ingestion pipeline.
 
 ---
-*Last Updated: 2026-10-26 (Session 5: Claude Code compatibility, verified pinned installs, CI, tests and docs portal redesign)*
+*Last Updated: 2026-11-01 (Session 6: merged HERMES migration framework with Claude Code compatibility, verified installs, CI, tests and docs portal redesign)*

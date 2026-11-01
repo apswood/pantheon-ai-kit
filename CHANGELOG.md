@@ -7,7 +7,7 @@ All notable changes to the PANTHEON AI Kit. The version lives in `VERSION` and i
 First tagged release.
 
 ### Added
-- Claude Code compatibility: `CLAUDE.md` plus a generated `.claude/` mirror (5 agents, 6 skills, 1 rule) built from
+- Claude Code compatibility: `CLAUDE.md` plus a generated `.claude/` mirror (6 agents, 7 skills, 1 rule) built from
   the canonical `.agents/` sources by `tools/sync_claude.py`.
 - Pinned, verified installs: `PANTHEON_REF` / `-Ref` / `--ref`, and SHA-256 verification of every downloaded file
   against `kit_manifest.json`.
@@ -16,7 +16,7 @@ First tagged release.
 - Validator: prose file-count check, warning at 80% of the `GEMINI.md` size budget.
 
 ### Changed
-- Canonical file list grows from 24 to 43 files (Claude Code mirror, CLAUDE.md, docs template and embedded fonts).
+- Canonical file list grows from 24 to 48 files (Claude Code mirror, CLAUDE.md, docs template and embedded fonts).
 - `build_docs.py` stamps the kit version instead of the wall-clock time, so the HTML is reproducible.
 - The leak scanner skips tool caches (`.pytest_cache`, `.ruff_cache`, `.mypy_cache`, `node_modules`).
 

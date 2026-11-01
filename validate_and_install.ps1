@@ -4,7 +4,7 @@
 .DESCRIPTION
     Supports single-command remote bootstrap directly from GitHub via:
         irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
-    If run in a directory where the 43 canonical kit files are not yet present, automatically downloads
+    If run in a directory where the 48 canonical kit files are not yet present, automatically downloads
     and extracts the kit components (validate_and_install.ps1, setup.py, agents, skills, rules, and docs)
     from https://github.com/apswood/pantheon-ai-kit, initializes .env from .env.template, offers the
     optional custom keyword leak scanner builder (.custom_blocklist.json, protected by .gitignore),
@@ -116,27 +116,32 @@ $RequiredFiles = @(
     "validate_and_install.ps1",
     ".agents/agents/aegis_best_practice/agent.md",
     ".agents/agents/atlas_architecture/agent.md",
+    ".agents/agents/hermes_migration/agent.md",
     ".agents/agents/sage_governance/agent.md",
     ".agents/agents/sentinel_security/agent.md",
     ".agents/agents/spark_disruptor/agent.md",
     ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
     ".agents/skills/productivity-workload-governance/SKILL.md",
     ".agents/skills/quality-audit-governance/SKILL.md",
+    ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
     ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
     ".agents/skills/teams-standup-digest-notifier/SKILL.md",
     ".agents/skills/ticket-backlog-governance/SKILL.md",
     "Governance_Framework/AEGIS_Agent_System_Prompt.md",
+    "Governance_Framework/HERMES_Agent_System_Prompt.md",
     "Governance_Framework/SAGE_Agent_System_Prompt.md",
     ".agents/rules/sage-governance-prompt.md",
     "CLAUDE.md",
     ".claude/agents/aegis_best_practice.md",
     ".claude/agents/atlas_architecture.md",
+    ".claude/agents/hermes_migration.md",
     ".claude/agents/sage_governance.md",
     ".claude/agents/sentinel_security.md",
     ".claude/agents/spark_disruptor.md",
     ".claude/skills/infrastructure-best-practice-analyser/SKILL.md",
     ".claude/skills/productivity-workload-governance/SKILL.md",
     ".claude/skills/quality-audit-governance/SKILL.md",
+    ".claude/skills/server-migration-infrastructure-replication/SKILL.md",
     ".claude/skills/support-team-governance-analytics-coaching/SKILL.md",
     ".claude/skills/teams-standup-digest-notifier/SKILL.md",
     ".claude/skills/ticket-backlog-governance/SKILL.md",
@@ -477,15 +482,17 @@ function Invoke-KitUninstallation {
     $dirsToPrune = @(
         ".agents/agents/aegis_best_practice",
         ".agents/agents/atlas_architecture",
+        ".agents/agents/hermes_migration",
         ".agents/agents/sage_governance",
         ".agents/agents/sentinel_security",
         ".agents/agents/spark_disruptor",
         ".agents/skills/infrastructure-best-practice-analyser",
-        ".agents/skills/ticket-backlog-governance",
         ".agents/skills/productivity-workload-governance",
         ".agents/skills/quality-audit-governance",
-        ".agents/skills/teams-standup-digest-notifier",
+        ".agents/skills/server-migration-infrastructure-replication",
         ".agents/skills/support-team-governance-analytics-coaching",
+        ".agents/skills/teams-standup-digest-notifier",
+        ".agents/skills/ticket-backlog-governance",
         ".agents/rules",
         ".agents/agents",
         ".agents/skills",
@@ -496,6 +503,7 @@ function Invoke-KitUninstallation {
         ".claude/skills/ticket-backlog-governance",
         ".claude/skills/productivity-workload-governance",
         ".claude/skills/quality-audit-governance",
+        ".claude/skills/server-migration-infrastructure-replication",
         ".claude/skills/teams-standup-digest-notifier",
         ".claude/skills/support-team-governance-analytics-coaching",
         ".claude/rules",
@@ -691,7 +699,7 @@ if (Test-Path -LiteralPath $LocalBlocklistPath) {
 
 $Issues = [System.Collections.Generic.List[string]]::new()
 
-# STAGE 1: File Existence and Byte Limit Check (43 canonical files)
+# STAGE 1: File Existence and Byte Limit Check (48 canonical files)
 Write-Host "[STAGE 1/4] Checking canonical file structure and byte limits..." -ForegroundColor Yellow
 
 foreach ($relPath in $RequiredFiles) {
@@ -769,7 +777,8 @@ $AllFiles = Get-ChildItem -Path $KitRoot -Recurse -File | Where-Object {
     $_.Extension -ne ".pyc" -and
     $_.FullName -notmatch '[\\/]\.git([\\/]|$)' -and
     $_.FullName -notmatch '[\\/]\.venv([\\/]|$)' -and
-    $_.FullName -notmatch '[\\/](__pycache__|\.pytest_cache|\.ruff_cache|\.mypy_cache|node_modules)([\\/]|$)'
+    $_.FullName -notmatch '[\\/](__pycache__|\.pytest_cache|\.ruff_cache|\.mypy_cache|node_modules)([\\/]|$)' -and
+    $_.FullName -notmatch '[\\/]\.agents[\\/]teamwork([\\/]|$)'
 }
 
 $decodedRules = @()

@@ -78,6 +78,15 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "description": "Copy-paste configuration analysis prompt template for PAN-OS, FortiOS, Junos, Windows, and Linux, plus an untested future project blueprint for automated API config ingestion.",
     },
     {
+        "id": "hermes-master-prompt",
+        "title": "HERMES System Prompt & Migration Blueprint",
+        "short_title": "HERMES Prompt & Blueprint",
+        "category": "Workspace Rules & Templates",
+        "badge": "Copy-Paste Prompt",
+        "path": "Governance_Framework/HERMES_Agent_System_Prompt.md",
+        "description": "Copy-paste server migration and discovery analysis prompt template, plus end-to-end blueprint for Linux-to-Ansible target replication and cutovers.",
+    },
+    {
         "id": "env-template",
         "title": "Environment Schema (.env.template)",
         "short_title": ".env.template Schema",
@@ -103,6 +112,15 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "badge": "Agent Persona",
         "path": ".agents/agents/atlas_architecture/agent.md",
         "description": "Specialist advisor for modular system design, pure-function vs. I/O separation, and Python/PowerShell runtime parity.",
+    },
+    {
+        "id": "agent-hermes",
+        "title": "HERMES — Server Migration & Rebuild Specialist",
+        "short_title": "HERMES (Migration)",
+        "category": "Specialist Advisory Agents",
+        "badge": "Agent Persona",
+        "path": ".agents/agents/hermes_migration/agent.md",
+        "description": "Specialist advisor for legacy server discovery, reverse-engineering co-hosted services/EDL pipelines, auth preservation, and target Ansible replication.",
     },
     {
         "id": "agent-sage",
@@ -184,6 +202,15 @@ DOCS_MANIFEST: List[Dict[str, str]] = [
         "badge": "Skill Runbook",
         "path": ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
         "description": "Cross-dimensional synthesis across Backlog, Quality, Productivity, and Customer Sentiment with 3-step coaching plans.",
+    },
+    {
+        "id": "skill-server-migration",
+        "title": "Server Migration & Infrastructure Replication Skill",
+        "short_title": "Server Migration & Rebuild",
+        "category": "Operational & KPI Skills",
+        "badge": "Skill Runbook",
+        "path": ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
+        "description": "Deterministic 4-phase server migration methodology, POSIX discovery checklists, Apache/EDL reverse-engineering, and AlmaLinux 9 Ansible replication suite.",
     },
 ]
 
@@ -568,8 +595,17 @@ def render_invoke_card(entry: Dict[str, str]) -> str:
     )
 
 
+NUMBER_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten"}
+
+
+def count_word(n: int) -> str:
+    return NUMBER_WORDS.get(n, str(n))
+
+
 def render_home(pages_data: List[Dict[str, Any]]) -> str:
     """Home view shown above the README: what the kit is, the one primary action, and the live tool switch."""
+    agent_count = sum(1 for p in pages_data if p["category"] == "Specialist Advisory Agents")
+    skill_count = sum(1 for p in pages_data if p["category"] == "Operational & KPI Skills")
 
     def rows(category: str) -> str:
         items = []
@@ -604,7 +640,7 @@ def render_home(pages_data: List[Dict[str, Any]]) -> str:
         '<section class="home" id="home" aria-label="Welcome">'
         "<h1>Governance agents and skills</h1>"
         '<div class="home-lead-row"><div>'
-        '<p class="home-sentence">Five advisory agents and six skills for ITIL, NIST and UK resilience standards. '
+        f'<p class="home-sentence">{count_word(agent_count).capitalize()} advisory agents and {count_word(skill_count)} skills for ITIL, NIST and UK resilience standards. '
         "One command installs them; they run in Antigravity or Claude Code.</p>"
         '<div class="home-actions">'
         "<a class=\"btn btn-primary\" href=\"#readme-1-quickstart-installation\" "
@@ -613,8 +649,8 @@ def render_home(pages_data: List[Dict[str, Any]]) -> str:
         "</div></div>"
         f"{live}</div>"
         '<div class="home-lists">'
-        f'<div><h2>Five specialist agents</h2><ul class="home-list">{rows("Specialist Advisory Agents")}</ul></div>'
-        f'<div><h2>Six operational skills</h2><ul class="home-list">{rows("Operational & KPI Skills")}</ul></div>'
+        f'<div><h2>{count_word(agent_count).capitalize()} specialist agents</h2><ul class="home-list">{rows("Specialist Advisory Agents")}</ul></div>'
+        f'<div><h2>{count_word(skill_count).capitalize()} operational skills</h2><ul class="home-list">{rows("Operational & KPI Skills")}</ul></div>'
         "</div></section>"
     )
 

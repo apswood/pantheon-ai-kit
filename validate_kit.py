@@ -49,9 +49,9 @@ PROSE_COUNT_FILES = [
 PROSE_COUNT_RE = re.compile(r"\b(\d+)\s+(?:canonical(?:\s+kit)?\s+files?|kit\s+files|components)\b", re.IGNORECASE)
 
 # Directories never scanned: VCS metadata, virtual environments and tool caches (the latter can echo test data).
-SCAN_SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", "node_modules"}
+SCAN_SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", "teamwork", ".pytest_cache", ".ruff_cache", ".mypy_cache", "node_modules"}
 
-# Expected Kit Files Relative to Kit Root (All 43 canonical files)
+# Expected Kit Files Relative to Kit Root (All 48 canonical files)
 EXPECTED_FILES = [
     "README.md",
     "ANTIGRAVITY_SETUP_GUIDE.md",
@@ -65,27 +65,32 @@ EXPECTED_FILES = [
     "validate_and_install.ps1",
     ".agents/agents/aegis_best_practice/agent.md",
     ".agents/agents/atlas_architecture/agent.md",
+    ".agents/agents/hermes_migration/agent.md",
     ".agents/agents/sage_governance/agent.md",
     ".agents/agents/sentinel_security/agent.md",
     ".agents/agents/spark_disruptor/agent.md",
     ".agents/skills/infrastructure-best-practice-analyser/SKILL.md",
     ".agents/skills/productivity-workload-governance/SKILL.md",
     ".agents/skills/quality-audit-governance/SKILL.md",
+    ".agents/skills/server-migration-infrastructure-replication/SKILL.md",
     ".agents/skills/support-team-governance-analytics-coaching/SKILL.md",
     ".agents/skills/teams-standup-digest-notifier/SKILL.md",
     ".agents/skills/ticket-backlog-governance/SKILL.md",
     "Governance_Framework/AEGIS_Agent_System_Prompt.md",
+    "Governance_Framework/HERMES_Agent_System_Prompt.md",
     "Governance_Framework/SAGE_Agent_System_Prompt.md",
     ".agents/rules/sage-governance-prompt.md",
     "CLAUDE.md",
     ".claude/agents/aegis_best_practice.md",
     ".claude/agents/atlas_architecture.md",
+    ".claude/agents/hermes_migration.md",
     ".claude/agents/sage_governance.md",
     ".claude/agents/sentinel_security.md",
     ".claude/agents/spark_disruptor.md",
     ".claude/skills/infrastructure-best-practice-analyser/SKILL.md",
     ".claude/skills/productivity-workload-governance/SKILL.md",
     ".claude/skills/quality-audit-governance/SKILL.md",
+    ".claude/skills/server-migration-infrastructure-replication/SKILL.md",
     ".claude/skills/support-team-governance-analytics-coaching/SKILL.md",
     ".claude/skills/teams-standup-digest-notifier/SKILL.md",
     ".claude/skills/ticket-backlog-governance/SKILL.md",
