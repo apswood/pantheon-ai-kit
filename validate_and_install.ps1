@@ -707,7 +707,8 @@ foreach ($relPath in $RequiredFiles) {
     if (-not (Test-Path -LiteralPath $fullPath)) {
         $Issues.Add("Missing required file: $relPath")
     } else {
-        $item = Get-Item -LiteralPath $fullPath
+        # -Force: dotfiles (.env.template, .gitignore) are hidden on Linux/macOS and Get-Item skips them otherwise.
+        $item = Get-Item -LiteralPath $fullPath -Force
         if ($item.Length -eq 0) {
             $Issues.Add("File is empty (0 bytes): $relPath")
         }
@@ -717,7 +718,7 @@ foreach ($relPath in $RequiredFiles) {
 # GEMINI.md boundary test (strictly under 24,000 bytes)
 $geminiFile = Join-Path $KitRoot "GEMINI.md"
 if (Test-Path -LiteralPath $geminiFile) {
-    $geminiLen = (Get-Item -LiteralPath $geminiFile).Length
+    $geminiLen = (Get-Item -LiteralPath $geminiFile -Force).Length
     if ($geminiLen -ge 24000) {
         $Issues.Add("GEMINI.md exceeds 24,000 byte limit: $geminiLen bytes (max: 23,999)")
     }
@@ -767,7 +768,7 @@ if (Test-Path -LiteralPath $agentsDir) {
 
 # STAGE 3: De-Identification & Secret Leak Scan
 Write-Host "`n[STAGE 3/4] Scanning for live credentials and custom blocklist leaks ($($GenericSecretRules.Count) built-in secret rules + $($EncodedRules.Count) local custom rule(s))..." -ForegroundColor Yellow
-$AllFiles = Get-ChildItem -Path $KitRoot -Recurse -File | Where-Object {
+$AllFiles = Get-ChildItem -Path $KitRoot -Recurse -File -Force | Where-Object {
     $_.Name -ne "setup.py" -and
     $_.Name -ne "validate_and_install.ps1" -and
     $_.Name -ne "validate_kit.py" -and

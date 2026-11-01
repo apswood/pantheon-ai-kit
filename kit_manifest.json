@@ -48,7 +48,7 @@
     "docs_template/portal.html": "39bb92507c18663843cab277eb531541df1c561429e4bc734e43b55bf36a4783",
     "docs_template/portal.js": "910a18c18ca69cdf48ebc31205b002e24b7657e5a5f8ee4b57d19f4493153894",
     "setup.py": "5843742f9952d5f3b87175ac7e8345cbabe6f59792023b1306acf95047e246a5",
-    "validate_and_install.ps1": "05ed74056b9d7db5c6939e7278985304bd74ec3e3404240afa98c919fb7003cd",
+    "validate_and_install.ps1": "50e172aecbf67f250d94f4b6c14929bc02f39cf203564ce48fd5e921af92b4d7",
     "validate_kit.py": "4b009292befdb069a44eeaee8239f7eb2c9bcfe1caf0fab098e100a8eae19676"
   }
 }
