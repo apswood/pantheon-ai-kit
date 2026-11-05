@@ -93,9 +93,12 @@ except Exception:
         "ANTIGRAVITY_SETUP_GUIDE.md",
         "ANTIGRAVITY_DOCS.html",
         "GEMINI.md",
+        "GOVERNANCE.md",
         ".env.template",
         ".gitignore",
         "setup.py",
+        "install.sh",
+        "install.cmd",
         "build_docs.py",
         "validate_kit.py",
         "validate_and_install.ps1",
@@ -218,12 +221,17 @@ def verify_kit_integrity(kit_dir: Path, ref: str) -> None:
     print(f"                   [OK] SHA-256 verified {len(expected)} files against {MANIFEST_FILENAME} (ref '{ref}', v{manifest.get('version', '?')}).")
 
 
-def ensure_kit_files_present(kit_dir: Path) -> None:
-    """Download missing kit components from GitHub if setup.py is executed standalone without cloning."""
+def ensure_kit_files_present(
+    kit_dir: Path,
+    include_docs: bool = False,
+    include_prompts: bool = False,
+    include_examples: bool = False,
+) -> None:
+    """Download missing kit components from GitHub if setup.py is executed standalone without cloning.
+    Installs minimal runtime essentials into client workspaces to guarantee zero clutter."""
     key_markers = [
         kit_dir / "GEMINI.md",
         kit_dir / "validate_kit.py",
-        kit_dir / "build_docs.py",
         kit_dir / ".agents" / "agents" / "aegis_best_practice" / "agent.md",
     ]
     if all(p.exists() for p in key_markers):
@@ -245,29 +253,59 @@ def ensure_kit_files_present(kit_dir: Path) -> None:
                 zf.extractall(tmp_path / "extracted")
             extracted_roots = [p for p in (tmp_path / "extracted").iterdir() if p.is_dir()]
             src_root = extracted_roots[0] if extracted_roots else (tmp_path / "extracted")
+
+            # Verify integrity of the complete download in temporary directory
+            verify_kit_integrity(src_root, REPO_REF)
+
             if (src_root / "GEMINI.md").exists():
-                for item in src_root.iterdir():
-                    dest = kit_dir / item.name
-                    if item.is_dir():
-                        shutil.copytree(item, dest, dirs_exist_ok=True)
-                    else:
-                        shutil.copy2(item, dest)
+                runtime_files = [
+                    "GEMINI.md", "GOVERNANCE.md", ".env.template", ".gitignore",
+                    "setup.py", "validate_kit.py", "validate_and_install.ps1",
+                    "CLAUDE.md", "AGENTS.md", "install.sh", "install.cmd",
+                ]
+                runtime_dirs = [".agents", ".claude", ".codex"]
+                if include_docs:
+                    runtime_files.append("ANTIGRAVITY_SETUP_GUIDE.md")
+                if include_prompts:
+                    runtime_dirs.append("Governance_Framework")
+                if include_examples:
+                    runtime_dirs.append("examples")
+
+                for rf in runtime_files:
+                    sf = src_root / rf
+                    if sf.is_file():
+                        shutil.copy2(sf, kit_dir / rf)
+
+                for rd in runtime_dirs:
+                    sd = src_root / rd
+                    if sd.is_dir():
+                        shutil.copytree(sd, kit_dir / rd, dirs_exist_ok=True)
+
                 downloaded_zip = True
-                print("                   [OK] Downloaded and extracted all PANTHEON AI Setup Kit components.")
+                print("                   [OK] Downloaded and installed runtime components cleanly (zero clutter).")
         except Exception as exc:
             print(f"                   [WARN] Archive download failed ({exc}). Falling back to raw file download...")
 
     if not downloaded_zip:
+        files_to_fetch = [
+            "GEMINI.md", "GOVERNANCE.md", ".env.template", ".gitignore",
+            "setup.py", "validate_kit.py", "validate_and_install.ps1",
+            "CLAUDE.md", "AGENTS.md", "install.sh", "install.cmd",
+        ]
+        if include_docs:
+            files_to_fetch.append("ANTIGRAVITY_SETUP_GUIDE.md")
         for rel_path in REQUIRED_KIT_FILES:
+            if rel_path.startswith((".agents/", ".claude/", ".codex/")):
+                files_to_fetch.append(rel_path)
+
+        for rel_path in files_to_fetch:
             dest_file = kit_dir / rel_path
             dest_file.parent.mkdir(parents=True, exist_ok=True)
             raw_url = f"{repo_raw_base_url(REPO_REF)}/{rel_path}"
             req = urllib.request.Request(raw_url, headers={"User-Agent": "Pantheon-AI-Kit-Bootstrap/1.0"})
             with urllib.request.urlopen(req, timeout=20) as resp, open(dest_file, "wb") as out_f:
                 shutil.copyfileobj(resp, out_f)
-        print(f"                   [OK] Downloaded all {len(REQUIRED_KIT_FILES)} canonical files from GitHub.")
-
-    verify_kit_integrity(kit_dir, REPO_REF)
+        print("                   [OK] Downloaded runtime files cleanly from GitHub.")
 
 
 def encode_reversed_base64(plain_text: str) -> str:
@@ -668,6 +706,389 @@ def execute_uninstallation(
     return 0
 
 
+
+CANONICAL_AGENTS = {
+    "aegis_best_practice",
+    "atlas_architecture",
+    "hermes_migration",
+    "sage_governance",
+    "sentinel_security",
+    "spark_disruptor",
+}
+
+CANONICAL_SKILLS = {
+    "infrastructure-best-practice-analyser",
+    "pantheon-setup",
+    "productivity-workload-governance",
+    "quality-audit-governance",
+    "server-migration-infrastructure-replication",
+    "support-team-governance-analytics-coaching",
+    "teams-standup-digest-notifier",
+    "ticket-backlog-governance",
+}
+
+
+def scan_workspace_agents_and_skills(workspace_dir: Path) -> Dict[str, Any]:
+    """Scan workspace for canonical, adopted, unmanaged, and disabled agents/skills."""
+    agents_dir = workspace_dir / ".agents"
+    if not agents_dir.is_dir():
+        return {
+            "canonical_agents": [],
+            "canonical_skills": [],
+            "unmanaged": [],
+            "adopted": {"agents": [], "skills": []},
+            "disabled": [],
+        }
+
+    inst_file = workspace_dir / ".pantheon-installed.json"
+    manifest: Dict[str, Any] = {}
+    if inst_file.is_file():
+        try:
+            manifest = json.loads(inst_file.read_text(encoding="utf-8"))
+        except Exception:
+            manifest = {}
+
+    adopted = manifest.get("adopted", {"agents": [], "skills": []})
+    adopted_names = set(adopted.get("agents", [])) | set(adopted.get("skills", []))
+
+    disabled_dir = agents_dir / ".disabled"
+    disabled_items = [d.name for d in disabled_dir.iterdir()] if disabled_dir.is_dir() else []
+
+    found_agents: List[str] = []
+    found_skills: List[str] = []
+    unmanaged: List[Dict[str, str]] = []
+
+    # Check .agents/agents
+    if (agents_dir / "agents").is_dir():
+        for d in (agents_dir / "agents").iterdir():
+            if d.is_dir() and d.name != ".disabled":
+                if d.name in CANONICAL_AGENTS:
+                    found_agents.append(d.name)
+                elif d.name not in adopted_names:
+                    unmanaged.append({"name": d.name, "kind": "agent", "path": str(d.relative_to(workspace_dir))})
+
+    # Check .agents/skills
+    if (agents_dir / "skills").is_dir():
+        for d in (agents_dir / "skills").iterdir():
+            if d.is_dir() and d.name != ".disabled":
+                if d.name in CANONICAL_SKILLS:
+                    found_skills.append(d.name)
+                elif d.name not in adopted_names:
+                    unmanaged.append({"name": d.name, "kind": "skill", "path": str(d.relative_to(workspace_dir))})
+
+    # Check direct children under .agents/
+    for d in agents_dir.iterdir():
+        if d.is_dir() and d.name not in ("agents", "skills", "rules", ".disabled", "__pycache__"):
+            if d.name not in adopted_names and not any(u["name"] == d.name for u in unmanaged):
+                kind = "skill" if (d / "SKILL.md").is_file() else "agent"
+                unmanaged.append({"name": d.name, "kind": kind, "path": str(d.relative_to(workspace_dir))})
+
+    return {
+        "canonical_agents": sorted(found_agents),
+        "canonical_skills": sorted(found_skills),
+        "unmanaged": unmanaged,
+        "adopted": adopted,
+        "disabled": sorted(disabled_items),
+    }
+
+
+def adopt_items(workspace_dir: Path, names: Optional[List[str]] = None) -> int:
+    """Adopt existing custom agents/skills into PANTHEON governance and lifecycle management."""
+    scan = scan_workspace_agents_and_skills(workspace_dir)
+    unmanaged = scan["unmanaged"]
+    if not unmanaged:
+        print("[INFO] No unmanaged agents or skills detected in workspace to adopt.")
+        return 0
+
+    to_adopt = unmanaged
+    if names:
+        to_adopt = [u for u in unmanaged if u["name"] in names]
+
+    inst_file = workspace_dir / ".pantheon-installed.json"
+    manifest: Dict[str, Any] = {}
+    if inst_file.is_file():
+        try:
+            manifest = json.loads(inst_file.read_text(encoding="utf-8"))
+        except Exception:
+            manifest = {}
+
+    adopted = manifest.setdefault("adopted", {"agents": [], "skills": []})
+    for item in to_adopt:
+        target_list = adopted["agents"] if item["kind"] == "agent" else adopted["skills"]
+        if item["name"] not in target_list:
+            target_list.append(item["name"])
+        print(f"  [ADOPTED] Adopted {item['kind']} '{item['name']}' ({item['path']}) into PANTHEON governance.")
+
+    inst_file.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    print(f"\n[OK] Successfully adopted {len(to_adopt)} item(s). You can now manage them with --enable, --disable, or --uninstall-item.")
+    return 0
+
+
+def disable_item(workspace_dir: Path, name: str) -> int:
+    """Switch off an agent or skill by moving it to .agents/.disabled/ (retaining full history)."""
+    agents_dir = workspace_dir / ".agents"
+    disabled_dir = agents_dir / ".disabled"
+    disabled_dir.mkdir(parents=True, exist_ok=True)
+
+    candidates = [
+        agents_dir / "agents" / name,
+        agents_dir / "skills" / name,
+        agents_dir / name,
+    ]
+    found = next((c for c in candidates if c.exists()), None)
+    if not found:
+        if (disabled_dir / name).exists():
+            print(f"[INFO] '{name}' is already disabled (stored in {disabled_dir.relative_to(workspace_dir) / name}).")
+            return 0
+        print(f"[ERROR] Agent or skill '{name}' not found in {agents_dir}.", file=sys.stderr)
+        return 1
+
+    dest = disabled_dir / name
+    if dest.exists():
+        if dest.is_dir():
+            shutil.rmtree(dest)
+        else:
+            dest.unlink()
+    shutil.move(str(found), str(dest))
+
+    # Also handle Claude Code mirror if present
+    claude_candidate = workspace_dir / ".claude" / ("agents" if "agent" in str(found) else "skills") / (f"{name}.md" if "agent" in str(found) else name)
+    if claude_candidate.exists():
+        claude_disabled = workspace_dir / ".claude" / ".disabled"
+        claude_disabled.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(claude_candidate), str(claude_disabled / claude_candidate.name))
+
+    print(f"[DISABLED] '{name}' switched off. Moved to {dest.relative_to(workspace_dir)} (inactive in AI sessions).")
+    print(f"           Run 'python setup.py --enable {name}' at any time to switch it back on.")
+    return 0
+
+
+def enable_item(workspace_dir: Path, name: str) -> int:
+    """Switch on a previously disabled agent or skill, restoring it to the active directory."""
+    agents_dir = workspace_dir / ".agents"
+    disabled_item = agents_dir / ".disabled" / name
+    if not disabled_item.exists():
+        for c in (agents_dir / "agents" / name, agents_dir / "skills" / name, agents_dir / name):
+            if c.exists():
+                print(f"[INFO] '{name}' is already active at {c.relative_to(workspace_dir)}.")
+                return 0
+        print(f"[ERROR] Disabled item '{name}' not found in {agents_dir / '.disabled'}.", file=sys.stderr)
+        return 1
+
+    if (disabled_item / "SKILL.md").is_file():
+        dest = agents_dir / "skills" / name
+    elif (disabled_item / "agent.md").is_file():
+        dest = agents_dir / "agents" / name
+    elif name in CANONICAL_SKILLS:
+        dest = agents_dir / "skills" / name
+    elif name in CANONICAL_AGENTS:
+        dest = agents_dir / "agents" / name
+    else:
+        dest = agents_dir / "agents" / name
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(disabled_item), str(dest))
+
+    claude_disabled = workspace_dir / ".claude" / ".disabled"
+    if claude_disabled.is_dir():
+        for f in claude_disabled.glob(f"{name}*"):
+            c_dest = workspace_dir / ".claude" / ("agents" if f.name.endswith(".md") else "skills") / f.name
+            c_dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(f), str(c_dest))
+
+    print(f"[ENABLED] '{name}' switched on. Restored to {dest.relative_to(workspace_dir)} (active in AI sessions).")
+    return 0
+
+
+def scaffold_agent(workspace_dir: Path, name: str, role: Optional[str] = None) -> int:
+    """Scaffold a new specialist agent compliant with PANTHEON schema and British English standards."""
+    clean_name = re.sub(r"[^a-zA-Z0-9_]+", "_", name.lower()).strip("_")
+    dest_dir = workspace_dir / ".agents" / "agents" / clean_name
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    agent_file = dest_dir / "agent.md"
+    if agent_file.exists():
+        print(f"[ERROR] Agent '{clean_name}' already exists at {agent_file}.", file=sys.stderr)
+        return 1
+
+    desc = role or f"Specialist agent for {clean_name.replace('_', ' ').title()}."
+    title = clean_name.replace('_', ' ').title()
+
+    template = f"""---
+name: {clean_name}
+description: {desc}
+tools:
+  - view_file
+  - grep_search
+  - find_by_name
+---
+
+# {title} Specialist Agent
+
+You are an advisory specialist persona focused on {clean_name.replace('_', ' ')}.
+
+## Operational Role & Objective
+- Provide authoritative, evidence-based recommendations.
+- Preserve operational safety and adhere to standard operating procedures.
+
+## Core Responsibilities
+1. Analyse relevant configuration files, logs, and system states.
+2. Formulate pragmatic, non-destructive remediation plans.
+3. Validate operational prerequisites before proposing structural modifications.
+
+## Governance & Language Standards
+- Adhere to British English (en-GB) orthography (e.g. analyse, prioritise, optimise).
+- Treat all sensitive credentials as confidential and never print raw tokens (<REDACTED>).
+- Refuse unverified speculative modifications.
+"""
+    agent_file.write_text(template, encoding="utf-8")
+    rel_path = agent_file.relative_to(workspace_dir)
+    print("\n[CREATED] Specialist agent scaffold created at:")
+    print(f"          {rel_path}")
+    print("\n" + "=" * 70)
+    print("  HOW TO DEVELOP YOUR SPECIALIST AGENT")
+    print("=" * 70)
+    print("\n1. Understanding the Agent Concept:")
+    print("   An agent is an autonomous specialist persona that operates in an isolated")
+    print("   context window with scoped tools (e.g. view_file, grep_search).")
+    print("   It acts like an independent expert consultant in your pair-programming sessions.")
+    print("\n2. File to Edit:")
+    print(f"   {rel_path}")
+    print("\n3. Finalising & Polishing with an LLM:")
+    print("   You do not need prior prompt-engineering experience. Copy and paste the prompt")
+    print("   below into Google Antigravity, Claude Code, or your preferred LLM:")
+    print("-" * 70)
+    print('   "I am developing a specialist agent for the PANTHEON AI Kit in:')
+    print(f'    {rel_path}')
+    print(f'    Its objective is: {desc}')
+    print('    Please help me flesh out and refine its prompt following PANTHEON standards:')
+    print('    - British English (en-GB) spelling and quiet, professional competence.')
+    print('    - Objective, evidence-based evaluation steps, formulas, and thresholds.')
+    print('    - Strict credential isolation (mandatory <REDACTED> for all secrets).')
+    print('    - Concise, trigger-accurate YAML frontmatter description."')
+    print("-" * 70)
+    print("\n4. Local Testing & Management:")
+    print("   - Adopt into kit tracking:       python setup.py --adopt")
+    print(f"   - Temporarily disable / enable:  python setup.py --disable {clean_name} / --enable {clean_name}")
+    print("   - Validate workspace integrity:  python validate_kit.py")
+    print("\n5. Sharing with the Wider Community:")
+    print("   If this agent could benefit others, please review CONTRIBUTING.md before sharing:")
+    print("   - Ensure it contains no proprietary IP, employer secrets, or private data.")
+    print("   - If functionality overlaps with an existing agent, consider extending that agent")
+    print("     rather than duplicating it. You are also welcome to publish your own project!")
+    print("=" * 70 + "\n")
+    return 0
+
+
+def scaffold_skill(workspace_dir: Path, name: str, description: Optional[str] = None) -> int:
+    """Scaffold a new governance skill compliant with PANTHEON schema and British English standards."""
+    clean_name = re.sub(r"[^a-zA-Z0-9\-]+", "-", name.lower()).strip("-")
+    dest_dir = workspace_dir / ".agents" / "skills" / clean_name
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    skill_file = dest_dir / "SKILL.md"
+    if skill_file.exists():
+        print(f"[ERROR] Skill '{clean_name}' already exists at {skill_file}.", file=sys.stderr)
+        return 1
+
+    desc = description or f"Operational governance skill for {clean_name.replace('-', ' ')}."
+    title = clean_name.replace('-', ' ').title()
+
+    template = f"""---
+name: {clean_name}
+description: {desc}
+---
+
+# {title} Governance Skill
+
+## Overview
+{desc}
+
+## When to Use This Skill
+- Activate when auditing or evaluating {clean_name.replace('-', ' ')}.
+- Use during operational reviews and team handovers.
+
+## Procedural Workflow
+1. **Initial Assessment**: Inspect relevant operational datasets.
+2. **Analysis & Calculation**: Apply objective rubric criteria and business-hour rules.
+3. **Synthesis & Reporting**: Present evidence-based recommendations in British English (en-GB).
+
+## Hard Invariants
+- British English (en-GB) documentation and report formatting.
+- Strict isolation of sensitive configuration variables (<REDACTED>).
+"""
+    skill_file.write_text(template, encoding="utf-8")
+    rel_path = skill_file.relative_to(workspace_dir)
+    print("\n[CREATED] Governance skill scaffold created at:")
+    print(f"          {rel_path}")
+    print("\n" + "=" * 70)
+    print("  HOW TO DEVELOP YOUR GOVERNANCE SKILL")
+    print("=" * 70)
+    print("\n1. Understanding the Skill Concept:")
+    print("   A skill is an on-demand standard operating procedure (SOP), rubric, or calculation")
+    print("   reference injected into the active agent session when its YAML frontmatter")
+    print("   'description' matches the user's intent. It provides deep, progressive expertise.")
+    print("\n2. File to Edit:")
+    print(f"   {rel_path}")
+    print("\n3. Finalising & Polishing with an LLM:")
+    print("   You do not need prior prompt-engineering experience. Copy and paste the prompt")
+    print("   below into Google Antigravity, Claude Code, or your preferred LLM:")
+    print("-" * 70)
+    print('   "I am developing a governance skill for the PANTHEON AI Kit in:')
+    print(f'    {rel_path}')
+    print(f'    Its objective is: {desc}')
+    print('    Please help me refine the instructions and workflow following PANTHEON standards:')
+    print('    - British English (en-GB) spelling and clear procedural steps.')
+    print('    - Concrete rubrics, mathematical definitions, or compliance checklists.')
+    print('    - Strict credential isolation (mandatory <REDACTED> for all secrets).')
+    print('    - A sharp frontmatter description specifying exactly when this skill should trigger."')
+    print("-" * 70)
+    print("\n4. Local Testing & Management:")
+    print("   - Adopt into kit tracking:       python setup.py --adopt")
+    print(f"   - Temporarily disable / enable:  python setup.py --disable {clean_name} / --enable {clean_name}")
+    print("   - Validate workspace integrity:  python validate_kit.py")
+    print("\n5. Sharing with the Wider Community:")
+    print("   If this skill could benefit others, please review CONTRIBUTING.md before sharing:")
+    print("   - Ensure it contains no proprietary IP, employer secrets, or private data.")
+    print("   - If functionality overlaps with an existing skill, consider extending that skill")
+    print("     first. You are also welcome to publish your own project in open source!")
+    print("=" * 70 + "\n")
+    return 0
+
+
+def uninstall_single_item(workspace_dir: Path, name: str, force: bool = False) -> int:
+    """Surgically remove an individual agent or skill (canonical or adopted)."""
+    agents_dir = workspace_dir / ".agents"
+    targets = [
+        agents_dir / "agents" / name,
+        agents_dir / "skills" / name,
+        agents_dir / name,
+        agents_dir / ".disabled" / name,
+    ]
+    found = [t for t in targets if t.exists()]
+    if not found:
+        print(f"[ERROR] Item '{name}' not found in {agents_dir}.", file=sys.stderr)
+        return 1
+
+    target = found[0]
+    if not force:
+        confirm = input(f"Are you sure you want to permanently delete {target.relative_to(workspace_dir)}? [y/N]: ").strip().lower()
+        if confirm not in ("y", "yes"):
+            print("[CANCELLED] Deletion cancelled.")
+            return 0
+
+    if target.is_dir():
+        shutil.rmtree(target)
+    else:
+        target.unlink()
+
+    for m in (workspace_dir / ".claude", workspace_dir / ".codex"):
+        if m.is_dir():
+            for match in m.rglob(f"*{name}*"):
+                if match.is_file():
+                    match.unlink()
+
+    print(f"[OK] Successfully uninstalled '{name}'.")
+    return 0
+
 def load_catalog(kit_dir: Path) -> Any:
     """Import tools/kit_catalog.py from the kit (after a standalone bootstrap has fetched it)."""
     tools_dir = str(kit_dir / "tools")
@@ -734,6 +1155,7 @@ def detect_workspace(kit_dir: Path, target_dir: Path) -> Dict[str, Any]:
         env["missing_keys"] = [k for k in keys["plain"] + keys["secret"] + keys["thresholds"] if k not in values]
         env["empty_secret_keys"] = [k for k in keys["secret"] if k in values and not values[k].strip()]
     pwsh_path, pwsh_ver = detect_executable(["pwsh"])
+    scan = scan_workspace_agents_and_skills(target_dir)
     return {
         "kit_dir": str(kit_dir),
         "kit_version": kit_version(kit_dir),
@@ -745,6 +1167,7 @@ def detect_workspace(kit_dir: Path, target_dir: Path) -> Dict[str, Any]:
             "claude-code": (target_dir / ".claude").is_dir() or (target_dir / "CLAUDE.md").is_file(),
             "codex": (target_dir / ".codex").is_dir() or (target_dir / "AGENTS.md").is_file(),
         },
+        "agents_and_skills": scan,
         "runtimes": {"python": sys.version.split()[0], "pwsh": pwsh_ver if pwsh_path else None},
         "env": env,
         "catalogue": catalog.catalogue(),
@@ -888,6 +1311,9 @@ def bootstrap_workspace(
     force_configure_scanner: bool = False,
     skip_custom_scanner: bool = False,
     cli_scanner_keywords: Optional[List[str]] = None,
+    include_docs: bool = False,
+    include_prompts: bool = False,
+    include_examples: bool = False,
 ) -> int:
     """Execute workspace initialization, optional custom scanner setup, docs build, and validation."""
     print("=" * 78)
@@ -908,7 +1334,7 @@ def bootstrap_workspace(
     print_language_guide()
 
     # If setup.py was downloaded standalone without the rest of the repo, fetch the missing kit files
-    ensure_kit_files_present(kit_dir)
+    ensure_kit_files_present(kit_dir, include_docs=include_docs, include_prompts=include_prompts, include_examples=include_examples)
 
     # 1. Mirror .env.template -> .env in target directory when initializing a project workspace
     env_template = kit_dir / ".env.template"
@@ -951,9 +1377,9 @@ def bootstrap_workspace(
         skip_custom_scanner=skip_custom_scanner,
     )
 
-    # 4. Compile standalone local HTML docs (ANTIGRAVITY_DOCS.html)
+    # 4. Local documentation compilation (opt-in for clutter-free workspaces)
     docs_builder = kit_dir / "build_docs.py"
-    if docs_builder.exists():
+    if include_docs and docs_builder.exists():
         print("[STEP 4/5] Compiling standalone HTML5 Local Docs (ANTIGRAVITY_DOCS.html)...")
         res = subprocess.run([sys.executable, str(docs_builder)], cwd=str(kit_dir), capture_output=True, text=True)
         if res.returncode == 0:
@@ -961,6 +1387,9 @@ def bootstrap_workspace(
         else:
             print(f"           [ERROR] Docs build failed:\n{res.stderr}", file=sys.stderr)
             return res.returncode
+    else:
+        print("[STEP 4/5] Online documentation available at: https://apswood.github.io/pantheon-ai-kit/")
+        print("           (Minimal footprint: ANTIGRAVITY_DOCS.html not compiled; pass --include-docs to compile local HTML).")
 
     # 5. Run kit structural & zero-leak validator (validate_kit.py)
     validator = kit_dir / "validate_kit.py"
@@ -1022,6 +1451,73 @@ def main() -> int:
         "--guide-only",
         action="store_true",
         help="Print the Python vs. PowerShell language selection guide and exit.",
+    )
+    parser.add_argument(
+        "--adopt",
+        action="store_true",
+        help="Adopt existing unmanaged agents/skills in the target workspace into PANTHEON governance.",
+    )
+    parser.add_argument(
+        "--enable",
+        type=str,
+        default=None,
+        metavar="NAME",
+        help="Switch on an agent or skill by restoring it from .agents/.disabled/.",
+    )
+    parser.add_argument(
+        "--disable",
+        type=str,
+        default=None,
+        metavar="NAME",
+        help="Switch off an agent or skill by moving it to .agents/.disabled/ (retaining all history).",
+    )
+    parser.add_argument(
+        "--new-agent",
+        type=str,
+        default=None,
+        metavar="NAME",
+        help="Scaffold a new specialist agent adhering to PANTHEON standards and prompt to contribute upstream.",
+    )
+    parser.add_argument(
+        "--new-skill",
+        type=str,
+        default=None,
+        metavar="NAME",
+        help="Scaffold a new governance skill adhering to PANTHEON standards and prompt to contribute upstream.",
+    )
+    parser.add_argument(
+        "--role",
+        type=str,
+        default=None,
+        help="Optional role description when scaffolding with --new-agent.",
+    )
+    parser.add_argument(
+        "--description",
+        type=str,
+        default=None,
+        help="Optional description when scaffolding with --new-skill.",
+    )
+    parser.add_argument(
+        "--uninstall-item",
+        type=str,
+        default=None,
+        metavar="NAME",
+        help="Surgically remove a specific canonical or adopted agent or skill.",
+    )
+    parser.add_argument(
+        "--include-docs",
+        action="store_true",
+        help="Download ANTIGRAVITY_SETUP_GUIDE.md and compile offline ANTIGRAVITY_DOCS.html.",
+    )
+    parser.add_argument(
+        "--include-prompts",
+        action="store_true",
+        help="Download master prompt reference blueprints in Governance_Framework/.",
+    )
+    parser.add_argument(
+        "--include-examples",
+        action="store_true",
+        help="Download synthetic examples and sample datasets.",
     )
     parser.add_argument(
         "--skip-validation",
@@ -1099,8 +1595,26 @@ def main() -> int:
         print_language_guide()
         return 0
 
+    if args.adopt:
+        return adopt_items(target_dir)
+
+    if args.disable:
+        return disable_item(target_dir, args.disable)
+
+    if args.enable:
+        return enable_item(target_dir, args.enable)
+
+    if args.new_agent:
+        return scaffold_agent(target_dir, args.new_agent, args.role)
+
+    if args.new_skill:
+        return scaffold_skill(target_dir, args.new_skill, args.description)
+
+    if args.uninstall_item:
+        return uninstall_single_item(target_dir, args.uninstall_item, force=args.force or args.yes)
+
     if args.detect:
-        ensure_kit_files_present(kit_dir)
+        ensure_kit_files_present(kit_dir, include_docs=args.include_docs, include_prompts=args.include_prompts, include_examples=args.include_examples)
         report = detect_workspace(kit_dir, target_dir)
         if not args.json:
             report.pop("catalogue")
@@ -1108,7 +1622,7 @@ def main() -> int:
         return 0
 
     if not args.uninstall:
-        ensure_kit_files_present(kit_dir)
+        ensure_kit_files_present(kit_dir, include_docs=args.include_docs, include_prompts=args.include_prompts, include_examples=args.include_examples)
         try:
             profile = build_profile(args, target_dir, load_catalog(kit_dir))
         except ValueError as exc:
@@ -1138,6 +1652,9 @@ def main() -> int:
         force_configure_scanner=args.configure_scanner,
         skip_custom_scanner=args.skip_custom_scanner,
         cli_scanner_keywords=args.scanner_keywords,
+        include_docs=args.include_docs,
+        include_prompts=args.include_prompts,
+        include_examples=args.include_examples,
     )
 
 

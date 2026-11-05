@@ -13,55 +13,64 @@
 
 ## 1. Quickstart & Installation
 
-You do **not** need to clone or manually download the repository beforehand. Run a single bootstrap command in your target project directory to download all 60 canonical kit files, initialize `.env` from `.env.template`, optionally configure the custom keyword leak scanner, and run all 4 pre-flight validation checks.
+Bootstrap PANTHEON AI Kit directly into your project workspace with zero manual downloads. The bootstrapper deposits only essential runtime components (`.agents/`, `GEMINI.md`, `.env.template`, `setup.py`, and validation scripts)—leaving your target project clean and clutter-free. Documentation is hosted live at [**`https://apswood.github.io/pantheon-ai-kit/`**](https://apswood.github.io/pantheon-ai-kit/).
 
-### Option A: Zero-Clone PowerShell One-Liner (Recommended)
-Open PowerShell (`pwsh` 7.2+ recommended, or Windows PowerShell 5.1) in your target directory and run:
+### Platform One-Liners
 
+#### 🪟 Windows PowerShell (Recommended for Windows)
+Open PowerShell (`pwsh` 7.2+ recommended, or Windows PowerShell 5.1) in your project directory:
 ```powershell
-# 1. Create or enter your project workspace directory and run the remote bootstrapper:
-mkdir C:\Workspaces\ServiceDeliveryOps; cd C:\Workspaces\ServiceDeliveryOps
 irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
-
-# Alternative: Install into a specific folder via environment variable:
-$env:PANTHEON_TARGET_DIR = "C:\Workspaces\ServiceDeliveryOps"; irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
 ```
 
-### Option B: Cross-Platform Python Bootstrapper (`setup.py`)
-If you prefer Python (Windows, macOS, or Linux):
-
-```powershell
-# Zero-clone Python bootstrap (fetches all 60 kit files, initializes .env, rebuilds HTML docs, and validates):
-irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/setup.py -OutFile setup.py; python setup.py --init-env
-
-# Or from an existing local clone (with optional isolated .venv creation):
-python setup.py --init-env --venv
+#### 🪟 Windows CMD
+From Windows Command Prompt:
+```cmd
+curl -fsSL https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/install.cmd -o install.cmd && install.cmd && del install.cmd
 ```
 
-### Next Steps After Installation
-0. **Run the guided setup *(Recommended)***: open the kit in Claude Code or Antigravity and run `/pantheon-setup`. It asks about your role, tools and systems, previews the change, and installs only what you need into your project workspace (`python setup.py --target-dir <workspace> --profile pantheon.profile.json`). The steps below are for a full, manual install.
-1. **Populate Local Credentials (`.env`)**: Open the generated `.env` file and add your environment values (ITSM URL, Entra ID / Graph tenant GUID, or Teams webhook URL). `.env` is strictly blocked by `.gitignore` and never committed to Git.
-2. **Open Workspace in Google Antigravity**: Open the workspace folder in Google Antigravity. It automatically discovers `GEMINI.md`, all 6 agents in `.agents/agents/`, and all 8 skills in `.agents/skills/`.
-3. **Verify or Customize Leak Scanning *(Optional)***:
-   ```powershell
-   # Run the 4-stage compliance & credential leak validator at any time:
-   python validate_kit.py
-   pwsh -NoProfile -File .\validate_and_install.ps1 -ValidateOnly
+#### 🍎 macOS (Terminal)
+```bash
+curl -fsSL https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/install.sh | bash
+```
 
-   # Configure or reset custom organization keywords in .custom_blocklist.json (gitignored):
-   pwsh -NoProfile -File .\validate_and_install.ps1 -ConfigureCustomScanner
-   python setup.py --configure-scanner
-   ```
+#### 🐧 Linux (bash / sh)
+```bash
+curl -fsSL https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/install.sh | bash
+```
+
+> **Clutter-Free Guarantee**: Target project workspaces receive strictly what is necessary to run the agents (`.agents/`, `GEMINI.md`, `.env.template`, `setup.py`, `validate_kit.py`, and `validate_and_install.ps1`). Maintainer build scripts, local HTML docs, master prompt blueprints, and synthetic examples are excluded by default (opt in with `--include-docs`, `--include-prompts`, or `--include-examples`).
+
+### Managing Workspace Agents & Skills (`setup.py`)
+After bootstrapping, use `setup.py` to manage your workspace:
+
+```bash
+# Detect installed, adopted, and unmanaged agents/skills in workspace:
+python setup.py --detect
+
+# Adopt pre-existing custom agents/skills into kit governance:
+python setup.py --adopt
+
+# Switch off an agent or skill (moves to .agents/.disabled/ to deactivate in AI sessions):
+python setup.py --disable aegis_best_practice
+
+# Switch on a previously disabled agent or skill:
+python setup.py --enable aegis_best_practice
+
+# Scaffold a new specialist agent or skill (with British English guidance and contribution prompt):
+python setup.py --new-agent database_auditor --role "Database resilience auditor"
+python setup.py --new-skill redis-cache-governance --description "Audit Redis memory and TTL policies"
+
+# Surgically uninstall a specific agent or skill:
+python setup.py --uninstall-item database_auditor
+```
 
 ### Pinning a Release & Integrity Verification (Recommended)
-`main` moves. For reproducible installs, pin a release tag (or commit SHA) with `PANTHEON_REF` (or `-Ref` / `--ref`). The installers fetch `kit_manifest.json` from that ref and verify the SHA-256 of every downloaded file; any mismatch aborts the install.
+For reproducible installs, pin a release tag (or commit SHA) with `PANTHEON_REF` (or `-Ref` / `--ref`). The installers fetch `kit_manifest.json` from that ref and verify the SHA-256 of downloaded archive files; any mismatch aborts the install.
 
 ```powershell
 $env:PANTHEON_REF = "v1.0.1"; irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/v1.0.1/validate_and_install.ps1 | iex
 ```
-
-To inspect before running, download first: `irm <url> -OutFile validate_and_install.ps1`, read it, then run `pwsh -File .\validate_and_install.ps1 -Ref v1.0.1`.
-> The manifest comes from the same repository, so it protects against corruption and partial or mixed-ref downloads, not against a compromised repository. Pinning a tag you have reviewed is what gives you immutability.
 
 ### 1.1 Using the Kit with Claude Code
 The same agents and skills work in **Claude Code** with no extra setup beyond the bootstrap above:
@@ -211,7 +220,7 @@ Make what you build simple, testable and safe: sound architecture, secrets kept 
 
 ---
 
-## 3. Repository Layout (60 Canonical Files)
+## 3. Repository Layout (63 Canonical Files)
 
 ```text
 pantheon-ai-kit/

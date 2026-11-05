@@ -181,7 +181,8 @@ pwsh -NoProfile -File .\validate_and_install.ps1 -Uninstall -TargetWorkspaceDir 
 - [x] **Server Migration & Rebuild Framework (Milestone 1)**: Deployed HERMES specialist agent (`hermes_migration`), companion skill (`server-migration-infrastructure-replication`), standalone prompt (`HERMES_Agent_System_Prompt.md`), and integrated across all 7 kit lifecycle touchpoints.
 - [x] **OpenAI Codex Compatibility (Untested in Codex)**: `tools/sync_codex.py` generates `AGENTS.md` (points Codex to this file and the S.A.G.E. rule; no copy, as Antigravity also reads `AGENTS.md`) and `.codex/agents/*.toml`; Codex reads `.agents/skills/` natively.
 - [x] **Guided Setup (`/pantheon-setup`)**: "Getting started" group; `tools/kit_catalog.py` (roles, integrations, thresholds) drives `setup.py --detect/--profile` (dry-run plan, idempotent, removes only what it installed) and a generated `local-baselines` rule.
+- [x] **Clutter-Free Bootstrap, Downloader UI, Adoption Engine & Project Governance**: Fixed PowerShell folder merging bug, enforced minimal workspace footprint (zero clutter in client projects), added Antigravity-style OS tabbed downloader with topbar GitHub link in docs portal, added platform launchers (`install.sh`, `install.cmd`), built agent/skill adoption, enable/disable toggles (`--adopt`, `--enable`, `--disable`), scaffolding CLI (`--new-agent`, `--new-skill`), and authored engineering charter `GOVERNANCE.md` and contributor guidelines.
 - [ ] **Future Project (Untested)**: Implement tracer-bullet Slice 1 of the `AEGIS` multi-vendor API config ingestion pipeline.
 
 ---
-*Last Updated: 2026-11-01 (Session 6: merged HERMES migration framework with Claude Code compatibility, verified installs, CI, tests and docs portal redesign)*
+*Last Updated: 2026-11-04 (Session 7: Clutter-free minimal installation, Antigravity-style downloader UI, agent adoption/toggles, GOVERNANCE.md)*

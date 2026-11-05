@@ -51,15 +51,18 @@ PROSE_COUNT_RE = re.compile(r"\b(\d+)\s+(?:canonical(?:\s+kit)?\s+files?|kit\s+f
 # Directories never scanned: VCS metadata, virtual environments and tool caches (the latter can echo test data).
 SCAN_SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", "teamwork", ".pytest_cache", ".ruff_cache", ".mypy_cache", "node_modules"}
 
-# Expected Kit Files Relative to Kit Root (All 60 canonical files)
+# Expected Kit Files Relative to Kit Root (All 63 canonical files)
 EXPECTED_FILES = [
     "README.md",
     "ANTIGRAVITY_SETUP_GUIDE.md",
     "ANTIGRAVITY_DOCS.html",
     "GEMINI.md",
+    "GOVERNANCE.md",
     ".env.template",
     ".gitignore",
     "setup.py",
+    "install.sh",
+    "install.cmd",
     "build_docs.py",
     "validate_kit.py",
     "validate_and_install.ps1",
@@ -227,10 +230,20 @@ def parse_yaml_frontmatter(content: str) -> Tuple[bool, Dict[str, Any], str, str
     return True, meta, body, ""
 
 
-def validate_structure(kit_dir: Path) -> List[str]:
-    """Stage 1: Verify presence and non-empty status of all canonical kit files, and check size boundaries."""
+def validate_structure(kit_dir: Path, workspace_mode: bool = False) -> List[str]:
+    """Stage 1: Verify presence and non-empty status of canonical kit files, and check size boundaries."""
     errors = []
-    for rel_path in EXPECTED_FILES:
+    check_files = [
+        "GEMINI.md",
+        "GOVERNANCE.md",
+        ".env.template",
+        ".gitignore",
+        "setup.py",
+        "validate_kit.py",
+        "validate_and_install.ps1",
+    ] if workspace_mode else EXPECTED_FILES
+
+    for rel_path in check_files:
         full_path = kit_dir / rel_path
         if not full_path.exists():
             errors.append(f"Missing required file: {rel_path}")
@@ -542,6 +555,11 @@ def main() -> None:
         action="store_true",
         help="Enable verbose output reporting.",
     )
+    parser.add_argument(
+        "--workspace",
+        action="store_true",
+        help="Validate an installed client workspace instead of source repository.",
+    )
     args = parser.parse_args()
 
     # Determine kit directory
@@ -572,7 +590,7 @@ def main() -> None:
 
     # 1. Structure & Size Check
     print(f"[{YELLOW}STAGE 1/4{RESET}] Validating directory structure, file existence, and byte limits...")
-    struct_errors = validate_structure(kit_dir)
+    struct_errors = validate_structure(kit_dir, workspace_mode=args.workspace or not (kit_dir / "build_docs.py").is_file())
     if struct_errors:
         all_errors.extend(struct_errors)
         print(f"  {RED}[FAIL] Structure check found {len(struct_errors)} issue(s).{RESET}")
@@ -580,7 +598,8 @@ def main() -> None:
             for err in struct_errors:
                 print(f"         ! {err}")
     else:
-        print(f"  {GREEN}[PASS] All {len(EXPECTED_FILES)} canonical files exist and GEMINI.md is within 24,000 byte limit.{RESET}")
+        pass_msg = f"All {len(EXPECTED_FILES)} canonical files" if (kit_dir / "build_docs.py").is_file() else "All workspace runtime files"
+        print(f"  {GREEN}[PASS] {pass_msg} exist and GEMINI.md is within 24,000 byte limit.{RESET}")
     size_warning = gemini_size_warning(kit_dir)
     if size_warning:
         print(f"  {YELLOW}[WARN] {size_warning}{RESET}")

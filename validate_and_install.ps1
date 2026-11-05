@@ -4,7 +4,7 @@
 .DESCRIPTION
     Supports single-command remote bootstrap directly from GitHub via:
         irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex
-    If run in a directory where the 60 canonical kit files are not yet present, automatically downloads
+    If run in a directory where the 63 canonical kit files are not yet present, automatically downloads
     and extracts the kit components (validate_and_install.ps1, setup.py, agents, skills, rules, and docs)
     from https://github.com/apswood/pantheon-ai-kit, initializes .env from .env.template, offers the
     optional custom keyword leak scanner builder (.custom_blocklist.json, protected by .gitignore),
@@ -55,6 +55,14 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [switch]$ValidateOnly,
+
+    [switch]$IncludeDocs,
+
+    [switch]$IncludePrompts,
+
+    [switch]$IncludeExamples,
+
+    [switch]$Adopt,
 
     [Alias('TargetWorkspace')]
     [string]$TargetWorkspaceDir,
@@ -115,9 +123,12 @@ $RequiredFiles = @(
     "ANTIGRAVITY_SETUP_GUIDE.md",
     "ANTIGRAVITY_DOCS.html",
     "GEMINI.md",
+    "GOVERNANCE.md",
     ".env.template",
     ".gitignore",
     "setup.py",
+    "install.sh",
+    "install.cmd",
     "build_docs.py",
     "validate_kit.py",
     "validate_and_install.ps1",
@@ -254,6 +265,21 @@ function Test-PantheonKitIntegrity ([string]$KitDir) {
     Write-Host "  [OK] SHA-256 verified $(@($expected.PSObject.Properties).Count) files against kit_manifest.json (ref '$Ref', v$($manifest.version))." -ForegroundColor Green
 }
 
+
+function Copy-DirectoryContents ([string]$SourceDir, [string]$TargetDir) {
+    if (-not (Test-Path -LiteralPath $TargetDir)) {
+        New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
+    }
+    Get-ChildItem -LiteralPath $SourceDir -Force | ForEach-Object {
+        $destPath = Join-Path $TargetDir $_.Name
+        if ($_.PSIsContainer) {
+            Copy-DirectoryContents -SourceDir $_.FullName -TargetDir $destPath
+        } else {
+            Copy-Item -LiteralPath $_.FullName -Destination $destPath -Force
+        }
+    }
+}
+
 function Install-PantheonKitFromGitHub ([string]$DestinationDir) {
     Write-Host "`n[REMOTE BOOTSTRAP] Local kit files not found. Downloading PANTHEON AI Setup Kit from GitHub..." -ForegroundColor Yellow
     Write-Host "  Destination : $DestinationDir" -ForegroundColor Gray
@@ -280,13 +306,45 @@ function Install-PantheonKitFromGitHub ([string]$DestinationDir) {
         $innerFolder = Get-ChildItem -Path $extractDir -Directory | Select-Object -First 1
         $sourceRoot = if ($null -ne $innerFolder) { $innerFolder.FullName } else { $extractDir }
 
+        # Verify integrity on the fully extracted archive in temp directory first!
+        Test-PantheonKitIntegrity $sourceRoot
+
         if (Test-Path -LiteralPath (Join-Path $sourceRoot "GEMINI.md")) {
-            Get-ChildItem -Path $sourceRoot -Force | ForEach-Object {
-                $destItem = Join-Path $DestinationDir $_.Name
-                Copy-Item -LiteralPath $_.FullName -Destination $destItem -Recurse -Force
+            # Minimal runtime essentials for client workspaces (clutter-free)
+            $runtimeFiles = @(
+                "GEMINI.md", "GOVERNANCE.md", ".env.template", ".gitignore",
+                "setup.py", "validate_kit.py", "validate_and_install.ps1",
+                "CLAUDE.md", "AGENTS.md", "install.sh", "install.cmd"
+            )
+            $runtimeDirs = @(".agents", ".claude", ".codex")
+
+            if ($IncludeDocs) {
+                $runtimeFiles += @("ANTIGRAVITY_SETUP_GUIDE.md")
+            }
+            if ($IncludePrompts) {
+                $runtimeDirs += @("Governance_Framework")
+            }
+            if ($IncludeExamples) {
+                $runtimeDirs += @("examples")
+            }
+
+            foreach ($rf in $runtimeFiles) {
+                $srcFile = Join-Path $sourceRoot $rf
+                if (Test-Path -LiteralPath $srcFile -PathType Leaf) {
+                    $destFile = Join-Path $DestinationDir $rf
+                    Copy-Item -LiteralPath $srcFile -Destination $destFile -Force
+                }
+            }
+
+            foreach ($rd in $runtimeDirs) {
+                $srcDir = Join-Path $sourceRoot $rd
+                if (Test-Path -LiteralPath $srcDir -PathType Container) {
+                    $destDir = Join-Path $DestinationDir $rd
+                    Copy-DirectoryContents -SourceDir $srcDir -TargetDir $destDir
+                }
             }
             $downloadedViaZip = $true
-            Write-Host "  [OK] Downloaded and extracted all PANTHEON AI Setup Kit components." -ForegroundColor Green
+            Write-Host "  [OK] Downloaded and installed runtime components cleanly (zero clutter)." -ForegroundColor Green
         }
     } catch {
         Write-Host "  [WARN] Archive download failed ($($_.Exception.Message)). Falling back to individual raw file download..." -ForegroundColor Yellow
@@ -297,7 +355,18 @@ function Install-PantheonKitFromGitHub ([string]$DestinationDir) {
     }
 
     if (-not $downloadedViaZip) {
+        $filesToFetch = @(
+            "GEMINI.md", "GOVERNANCE.md", ".env.template", ".gitignore",
+            "setup.py", "validate_kit.py", "validate_and_install.ps1",
+            "CLAUDE.md", "AGENTS.md", "install.sh", "install.cmd"
+        )
+        if ($IncludeDocs) { $filesToFetch += @("ANTIGRAVITY_SETUP_GUIDE.md") }
         foreach ($relPath in $RequiredFiles) {
+            if ($relPath -match '^\.(agents|claude|codex)/') {
+                $filesToFetch += @($relPath)
+            }
+        }
+        foreach ($relPath in $filesToFetch) {
             $targetFile = Join-Path $DestinationDir ($relPath -replace '/', [System.IO.Path]::DirectorySeparatorChar)
             $parentDir = Split-Path -Parent $targetFile
             if (-not (Test-Path -LiteralPath $parentDir)) {
@@ -306,10 +375,8 @@ function Install-PantheonKitFromGitHub ([string]$DestinationDir) {
             $rawUrl = "$RepoRawBaseUrl/$relPath"
             Invoke-WebRequest -Uri $rawUrl -OutFile $targetFile -UseBasicParsing
         }
-        Write-Host "  [OK] Downloaded all $($RequiredFiles.Count) canonical files via raw GitHub stream." -ForegroundColor Green
+        Write-Host "  [OK] Downloaded runtime files via raw GitHub stream." -ForegroundColor Green
     }
-
-    Test-PantheonKitIntegrity $DestinationDir
 }
 
 function Invoke-CustomScannerSetup ([string]$WorkspaceDir) {
@@ -723,15 +790,21 @@ if (Test-Path -LiteralPath $LocalBlocklistPath) {
 
 $Issues = [System.Collections.Generic.List[string]]::new()
 
-# STAGE 1: File Existence and Byte Limit Check (60 canonical files)
+# STAGE 1: File Existence and Byte Limit Check (63 canonical files)
 Write-Host "[STAGE 1/4] Checking canonical file structure and byte limits..." -ForegroundColor Yellow
 
-foreach ($relPath in $RequiredFiles) {
+$isInstalledWorkspace = -not (Test-Path -LiteralPath (Join-Path $KitRoot "build_docs.py"))
+$filesToCheck = if ($isInstalledWorkspace) {
+    @("GEMINI.md", "GOVERNANCE.md", ".env.template", ".gitignore", "setup.py", "validate_kit.py", "validate_and_install.ps1")
+} else {
+    $RequiredFiles
+}
+
+foreach ($relPath in $filesToCheck) {
     $fullPath = Join-Path $KitRoot $relPath
     if (-not (Test-Path -LiteralPath $fullPath)) {
         $Issues.Add("Missing required file: $relPath")
     } else {
-        # -Force: dotfiles (.env.template, .gitignore) are hidden on Linux/macOS and Get-Item skips them otherwise.
         $item = Get-Item -LiteralPath $fullPath -Force
         if ($item.Length -eq 0) {
             $Issues.Add("File is empty (0 bytes): $relPath")
@@ -749,7 +822,7 @@ if (Test-Path -LiteralPath $geminiFile) {
 }
 
 if ($Issues.Count -eq 0) {
-    Write-Host "  [PASS] All $($RequiredFiles.Count) canonical files exist and GEMINI.md size is within limits." -ForegroundColor Green
+    if ($isInstalledWorkspace) { Write-Host "  [PASS] Workspace runtime files exist and GEMINI.md size is within limits." -ForegroundColor Green } else { Write-Host "  [PASS] All $($RequiredFiles.Count) canonical files exist and GEMINI.md size is within limits." -ForegroundColor Green }
 } else {
     Write-Host "  [FAIL] Detected $($Issues.Count) structure/size issue(s)." -ForegroundColor Red
 }

@@ -344,3 +344,32 @@
       }
       renderToc(currentPageId);
     })();
+
+    /* ---------- Downloader OS Tabs (Antigravity style) ---------- */
+    function setInstallerTab(os) {
+      document.querySelectorAll('.os-pill').forEach(function(pill) {
+        var isMatch = pill.id === 'os-btn-' + os;
+        pill.classList.toggle('active', isMatch);
+      });
+      document.querySelectorAll('.installer-panel').forEach(function(p) {
+        p.classList.toggle('hidden', p.id !== 'os-panel-' + os);
+      });
+      try { localStorage.setItem('pantheon_installer_os', os); } catch (e) {}
+    }
+
+    function initInstallerOs() {
+      var os = 'windows';
+      try {
+        var saved = localStorage.getItem('pantheon_installer_os');
+        if (saved === 'windows' || saved === 'macos' || saved === 'linux') {
+          os = saved;
+        } else {
+          var ua = navigator.userAgent || '';
+          if (/Macintosh|Mac OS X/i.test(ua)) os = 'macos';
+          else if (/Linux/i.test(ua)) os = 'linux';
+        }
+      } catch (e) {}
+      setInstallerTab(os);
+    }
+
+    initInstallerOs();

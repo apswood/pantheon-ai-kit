@@ -708,6 +708,53 @@ def count_word(n: int) -> str:
     return NUMBER_WORDS.get(n, str(n))
 
 
+
+def render_downloader(version: str) -> str:
+    """Antigravity-style OS-tabbed downloader matching macOS, Linux, Windows PowerShell, and Windows CMD."""
+    return (
+        '<div class="download-card" id="home-downloader">'
+        '<div class="download-card-header">'
+        '<div class="download-title-group">'
+        f'<h2>Download &amp; Install PANTHEON AI Kit <span class="download-badge">v{html.escape(version)}</span></h2>'
+        '<p class="download-sub">Zero-clone bootstrap for your project workspace. Minimal footprint, zero clutter.</p>'
+        '</div>'
+        '<div class="download-os-pills" role="group" aria-label="Operating System">'
+        '<button type="button" class="os-pill active" id="os-btn-windows" onclick="setInstallerTab(\'windows\')">'
+        '<svg class="os-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg> Windows'
+        '</button>'
+        '<button type="button" class="os-pill" id="os-btn-macos" onclick="setInstallerTab(\'macos\')">'
+        '<svg class="os-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.93-2.85-.9.04-1.99.6-2.63 1.35-.56.64-1.05 1.7-0.92 2.71.99.08 2.02-.46 2.62-1.21z"/></svg> macOS'
+        '</button>'
+        '<button type="button" class="os-pill" id="os-btn-linux" onclick="setInstallerTab(\'linux\')">'
+        '<svg class="os-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.002 0c-3.18 0-5.758 2.578-5.758 5.758 0 .81.169 1.58.473 2.28-.528.28-1.006.66-1.411 1.12C3.992 10.618 3 13.06 3 16.5c0 1.93.56 3.65 1.5 4.97-.28.44-.5.92-.5 1.53 0 .55.45 1 1 1h14c.55 0 1-.45 1-1 0-.61-.22-1.09-.5-1.53.94-1.32 1.5-3.04 1.5-4.97 0-3.44-.99-5.882-2.304-7.342-.405-.46-.883-.84-1.411-1.12.304-.7.473-1.47.473-2.28C17.76 2.578 15.182 0 12.002 0z"/></svg> Linux'
+        '</button>'
+        '</div>'
+        '</div>'
+        '<div class="installer-panel" id="os-panel-windows">'
+        '<div class="installer-cmd-group">'
+        '<div class="installer-cmd-title"><svg class="os-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg> Windows PowerShell</div>'
+        '<div class="code-block-wrapper"><div class="code-block-header"><span class="code-lang">powershell</span><button type="button" class="copy-btn" onclick="copyCodeBlock(this)">Copy</button></div><pre class="code-pre"><code>irm https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/validate_and_install.ps1 | iex</code></pre></div>'
+        '</div>'
+        '<div class="installer-cmd-group">'
+        '<div class="installer-cmd-title"><svg class="os-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg> Windows CMD</div>'
+        '<div class="code-block-wrapper"><div class="code-block-header"><span class="code-lang">cmd</span><button type="button" class="copy-btn" onclick="copyCodeBlock(this)">Copy</button></div><pre class="code-pre"><code>curl -fsSL https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/install.cmd -o install.cmd &amp;&amp; install.cmd &amp;&amp; del install.cmd</code></pre></div>'
+        '</div>'
+        '</div>'
+        '<div class="installer-panel hidden" id="os-panel-macos">'
+        '<div class="installer-cmd-group">'
+        '<div class="installer-cmd-title"><svg class="os-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.93-2.85-.9.04-1.99.6-2.63 1.35-.56.64-1.05 1.7-0.92 2.71.99.08 2.02-.46 2.62-1.21z"/></svg> macOS (Terminal / zsh / bash)</div>'
+        '<div class="code-block-wrapper"><div class="code-block-header"><span class="code-lang">bash</span><button type="button" class="copy-btn" onclick="copyCodeBlock(this)">Copy</button></div><pre class="code-pre"><code>curl -fsSL https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/install.sh | bash</code></pre></div>'
+        '</div>'
+        '</div>'
+        '<div class="installer-panel hidden" id="os-panel-linux">'
+        '<div class="installer-cmd-group">'
+        '<div class="installer-cmd-title"><svg class="os-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.002 0c-3.18 0-5.758 2.578-5.758 5.758 0 .81.169 1.58.473 2.28-.528.28-1.006.66-1.411 1.12C3.992 10.618 3 13.06 3 16.5c0 1.93.56 3.65 1.5 4.97-.28.44-.5.92-.5 1.53 0 .55.45 1 1 1h14c.55 0 1-.45 1-1 0-.61-.22-1.09-.5-1.53.94-1.32 1.5-3.04 1.5-4.97 0-3.44-.99-5.882-2.304-7.342-.405-.46-.883-.84-1.411-1.12.304-.7.473-1.47.473-2.28C17.76 2.578 15.182 0 12.002 0z"/></svg> Linux (bash / sh)</div>'
+        '<div class="code-block-wrapper"><div class="code-block-header"><span class="code-lang">bash</span><button type="button" class="copy-btn" onclick="copyCodeBlock(this)">Copy</button></div><pre class="code-pre"><code>curl -fsSL https://raw.githubusercontent.com/apswood/pantheon-ai-kit/main/install.sh | bash</code></pre></div>'
+        '</div>'
+        '</div>'
+        '</div>'
+    )
+
 def render_home(pages_data: List[Dict[str, Any]]) -> str:
     """Home view shown above the README: what the kit is, the one primary action, goals, and the grouped catalogue."""
     by_id = {p["id"]: p for p in pages_data}
@@ -797,6 +844,7 @@ def render_home(pages_data: List[Dict[str, Any]]) -> str:
         "<a class=\"link-quiet\" href=\"#setup-guide\" onclick=\"navigateToPage('setup-guide'); return false;\">Read the setup guide</a>"
         "</div></div>"
         f"{live}</div>"
+        f'{render_downloader(Path(__file__).resolve().parent.joinpath("VERSION").read_text(encoding="utf-8").strip() if Path(__file__).resolve().parent.joinpath("VERSION").is_file() else "1.0.1")}'
         f'<div class="home-goals"><h2>I want to&hellip;</h2><ul class="goal-list">{goals}</ul></div>'
         f'{group_tabs()}'
         "</section>"

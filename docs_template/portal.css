@@ -212,7 +212,28 @@ button { font: inherit; color: inherit; }
   cursor: pointer;
   transition: background-color 0.15s var(--ease), transform 0.12s var(--ease);
 }
-.theme-btn { grid-column: 3; }
+.topbar-actions {
+  grid-column: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.15s var(--ease), background-color 0.15s var(--ease);
+}
+.github-link:hover, .github-link:focus-visible {
+  opacity: 1;
+  background: var(--frame-active);
+}
 .theme-btn:hover, .menu-btn:hover, .search-toggle:hover { background: var(--frame-active); }
 .theme-btn:active, .menu-btn:active, .search-toggle:active { transform: scale(0.97); }
 .search-toggle { display: none; }
@@ -668,4 +689,95 @@ html.js .tool-tag { display: none; }
   body, .sheet { background: #fff; color: #000; }
   .sheet { display: block; margin: 0; padding: 0; }
   .docs-article.hidden { display: none; }
+}
+
+
+/* ---------- Downloader Component (Antigravity style) ---------- */
+.download-card {
+  margin: 20px 0 28px;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+}
+.download-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.download-title-group h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.download-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.download-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--pill-info-bg);
+  color: var(--pill-info-ink);
+}
+.download-os-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.os-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 999px;
+  border: 1px solid var(--control);
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+.os-pill:hover {
+  background: var(--frame-active);
+}
+.os-pill.active {
+  background: var(--primary);
+  color: var(--primary-ink);
+  border-color: var(--primary);
+}
+.os-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+.installer-panel {
+  display: block;
+}
+.installer-panel.hidden {
+  display: none;
+}
+.installer-cmd-group {
+  margin-bottom: 12px;
+}
+.installer-cmd-group:last-child {
+  margin-bottom: 0;
+}
+.installer-cmd-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
 }

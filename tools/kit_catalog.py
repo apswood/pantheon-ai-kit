@@ -319,7 +319,7 @@ def desired_files(kit_dir: Path, profile: Dict[str, Any]) -> Dict[str, str]:
     def copy(rel: str) -> None:
         out[rel] = (kit_dir / rel).read_bytes().decode("utf-8").replace("\r\n", "\n")
 
-    for rel in ("GEMINI.md", ".env.template"):
+    for rel in ("GEMINI.md", "GOVERNANCE.md", ".env.template"):
         copy(rel)
     for name in chosen["agents"]:
         copy(f".agents/agents/{name}/agent.md")
